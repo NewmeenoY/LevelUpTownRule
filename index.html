@@ -5,156 +5,299 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Rules | LevenUp Town</title>
     <style>
-        :root {
-            --bg-color: #f4f4f4;
-            --container-bg: #ffffff;
-            --text-main: #111111;
-            --text-muted: #555555;
-            --border-color: #000000;
-            --accent-color: #000000;
-        }
-
+        :root { --bg-color: #f4f4f4; --container-bg: #ffffff; --text-main: #111111; --border-color: #000000; --accent-color: #000000; }
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-
-        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }
-
-        /* --- Header & Logo --- */
-        header { text-align: center; padding: 40px 20px 30px; background-color: var(--container-bg); border-bottom: 4px solid var(--accent-color); }
-        .server-logo { max-width: 200px; height: auto; margin-bottom: 20px; border: 3px solid var(--accent-color); box-shadow: 5px 5px 0px rgba(0,0,0,1); }
-        h1 { font-size: 3.5em; font-weight: 900; text-transform: uppercase; margin: 0; letter-spacing: 3px; }
-        .subtitle { font-weight: bold; font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; margin-top: 10px; color: var(--text-muted); }
-
-        /* --- Nav --- */
-        .nav-bar { background-color: var(--accent-color); padding: 12px 20px; display: flex; justify-content: flex-end; position: sticky; top: 0; z-index: 10; }
-        .nav-bar button { background-color: transparent; color: #ffffff; border: 2px solid #ffffff; padding: 8px 20px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .nav-bar button:hover { background-color: #ffffff; color: var(--accent-color); }
-
-        /* --- Main Layout --- */
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; overflow-y: scroll; }
+        
+        header { text-align: center; padding: 40px 20px; background-color: #fff; border-bottom: 4px solid #000; }
+        .server-logo { max-width: 200px; margin-bottom: 20px; border: 3px solid #000; box-shadow: 5px 5px 0px #000; }
+        .nav-bar { background-color: #000; padding: 12px 20px; display: flex; justify-content: flex-end; position: sticky; top: 0; z-index: 10; }
+        .nav-bar button { background: transparent; color: #fff; border: 2px solid #fff; padding: 8px 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .nav-bar button:hover { background-color: #fff; color: #000; }
+        
         .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
         
-        /* --- Grid Menu --- */
-        .topic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; animation: fadeIn 0.5s ease-out; }
-        .topic-card { background-color: var(--container-bg); border: 2px solid var(--border-color); padding: 40px 20px; text-align: center; cursor: pointer; transition: 0.3s; box-shadow: 4px 4px 0px rgba(0,0,0,1); }
-        .topic-card:hover { transform: translateY(-5px); box-shadow: 8px 8px 0px rgba(0,0,0,1); }
-        .topic-icon { font-size: 3em; margin-bottom: 15px; }
-
-        /* --- Rule Content --- */
-        .rule-content-wrapper { display: none; background-color: var(--container-bg); border: 2px solid var(--border-color); padding: 30px; box-shadow: 6px 6px 0px rgba(0,0,0,1); animation: fadeIn 0.4s ease-out; }
-        .btn-back { background-color: var(--accent-color); color: #fff; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin-bottom: 20px; }
-        .btn-back:hover { background-color: #333; }
-        .rule-content-wrapper ul { list-style-type: square; padding-left: 20px; color: var(--text-muted); }
+        /* Grid Menu */
+        .topic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; animation: fadeIn 0.4s ease-in; }
+        .topic-card { background: #fff; border: 2px solid #000; padding: 30px 20px; text-align: center; cursor: pointer; box-shadow: 4px 4px 0px #000; transition: 0.2s; }
+        .topic-card:hover { transform: translateY(-5px); box-shadow: 8px 8px 0px #000; }
+        .topic-card h3 { margin: 0; font-size: 1.4em; }
         
-        /* --- Admin --- */
-        #admin-view { display: none; }
-        .admin-panel { background-color: var(--container-bg); border: 3px solid var(--accent-color); padding: 30px; box-shadow: 8px 8px 0px rgba(0,0,0,1); }
-        .form-group { margin-bottom: 20px; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 2px solid var(--border-color); }
-        .btn-submit { background-color: var(--accent-color); color: #fff; padding: 12px 25px; border: none; cursor: pointer; font-weight: bold; width: 100%; }
+        /* Rule Display */
+        .rule-content { display: none; background: #fff; border: 2px solid #000; padding: 30px; box-shadow: 6px 6px 0px #000; animation: fadeIn 0.3s ease-in; }
+        .rule-content ul { padding-left: 20px; font-size: 1.1em; }
+        .rule-content ul li { margin-bottom: 12px; }
+        
+        /* Admin Dashboard */
+        #admin-view { display: none; background: #fff; border: 3px solid #000; padding: 30px; box-shadow: 8px 8px 0px #000; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #000; font-size: 1em; }
+        .btn-action { padding: 12px 20px; cursor: pointer; font-weight: bold; border: 2px solid #000; background: #000; color: #fff; transition: 0.2s; }
+        .btn-action:hover { background: #333; }
+        
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; }
+        th, td { border: 2px solid #000; padding: 12px; text-align: left; }
+        th { background: #f0f0f0; }
+        .btn-edit { background: #ff9f43; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; margin-right: 5px; }
+        .btn-delete { background: #ff4757; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; }
 
-        /* --- Modal --- */
-        .login-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
-        .login-box { background: #fff; padding: 40px; border: 4px solid #000; width: 350px; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div id="login-modal" class="login-modal">
-        <div class="login-box">
-            <h2>🔒 Admin Login</h2>
+    <!-- Modal Login -->
+    <div id="login-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:#fff; padding:40px; border:4px solid #000; width:350px; box-shadow: 8px 8px 0px rgba(255,255,255,0.2);">
+            <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px; text-align:center;">🔒 Admin Login</h2>
             <div class="form-group"><label>Username</label><input type="text" id="input-user"></div>
             <div class="form-group"><label>Password</label><input type="password" id="input-pass"></div>
-            <button class="btn-submit" onclick="verifyLogin()">เข้าสู่ระบบ</button>
-            <button style="width: 100%; margin-top:10px; padding:10px; border:none; cursor:pointer;" onclick="closeLogin()">ยกเลิก</button>
+            <button class="btn-action" style="width:100%; margin-top:10px;" onclick="verifyLogin()">เข้าสู่ระบบ</button>
+            <button style="width: 100%; margin-top:10px; padding:12px; border:2px solid #000; background:#ddd; cursor:pointer; font-weight:bold;" onclick="closeLogin()">ยกเลิก</button>
         </div>
     </div>
 
+    <!-- Nav -->
     <div class="nav-bar"><button id="toggleBtn" onclick="handleAuthClick()">เข้าสู่ระบบ Admin</button></div>
 
     <header>
-        <img src="LEVELUPTOWN.png" alt="LevenUp Town Logo" class="server-logo">
-        <h1>LEVENUP TOWN</h1>
-        <p class="subtitle">กฎระเบียบและข้อบังคับในการเล่น (Server Rules)</p>
+        <!-- สังเกตชื่อรูปภาพ: ต้องตั้งชื่อไฟล์ใน GitHub ให้เป็น LEVELUPTOWN.jpg เป๊ะๆ -->
+        <img src="LEVELUPTOWN.png" alt="Logo" class="server-logo">
+        <h1 style="margin:0; font-size:3em; text-transform:uppercase; font-weight:900;">LEVENUP TOWN</h1>
     </header>
 
     <div class="container">
+        <!-- 1. เมนูหลัก (แยก 5 หมวด) -->
         <div id="main-menu" class="topic-grid">
-            <div class="topic-card" onclick="openRule('rule-general')"><div class="topic-icon">📜</div><h3>กฎทั่วไป</h3></div>
-            <div class="topic-card" onclick="openRule('rule-safezone')"><div class="topic-icon">🛡️</div><h3>พื้นที่ปลอดภัย</h3></div>
-            <div class="topic-card" onclick="openRule('rule-gov')"><div class="topic-icon">🚨</div><h3>หน่วยงานรัฐ</h3></div>
+            <div class="topic-card" onclick="openRule('General')"><h3>📜 กฎทั่วไป</h3></div>
+            <div class="topic-card" onclick="openRule('Safezone')"><h3>🛡️ พื้นที่ปลอดภัย</h3></div>
+            <div class="topic-card" onclick="openRule('Police')"><h3>🚓 กฎตำรวจ</h3></div>
+            <div class="topic-card" onclick="openRule('Medic')"><h3>🚑 กฎหมอ</h3></div>
+            <div class="topic-card" onclick="openRule('Council')"><h3>🏛️ กฎสภา</h3></div>
         </div>
 
-        <div id="rule-general" class="rule-content-wrapper">
-            <button class="btn-back" onclick="goBackToMenu()">◀ ย้อนกลับ</button>
-            <h2>📜 กฎทั่วไป (General Rules)</h2>
-            <ul>
-                <li>ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม</li>
-                <li>โปรดให้เกียรติผู้เล่นท่านอื่น ห้ามใช้คำพูดเหยียดหยาม</li>
-            </ul>
-        </div>
-        
-        <div id="rule-safezone" class="rule-content-wrapper">
-            <button class="btn-back" onclick="goBackToMenu()">◀ ย้อนกลับ</button>
-            <h2>🛡️ พื้นที่ปลอดภัย (Safezone)</h2>
-            <ul>
-                <li>ห้ามก่ออาชญากรรม ปล้น ขโมยรถ หรือทำร้ายร่างกายกันในพื้นที่ปลอดภัย</li>
-                <li>พื้นที่กาชา โรงพยาบาล และจุดเกิด ถือเป็นพื้นที่ปลอดภัย 100%</li>
-            </ul>
+        <!-- 2. หน้าแสดงเนื้อหากฎ -->
+        <div id="rule-display" class="rule-content">
+            <button class="btn-action" style="margin-bottom:20px;" onclick="goBack()">◀ ย้อนกลับหน้าแรก</button>
+            <h2 id="rule-title" style="border-bottom:2px solid #000; padding-bottom:10px; margin-top:0;"></h2>
+            <ul id="rule-list"></ul>
         </div>
 
-        <div id="rule-gov" class="rule-content-wrapper">
-            <button class="btn-back" onclick="goBackToMenu()">◀ ย้อนกลับ</button>
-            <h2>🚨 หน่วยงานรัฐ (Government)</h2>
-            <ul>
-                <li>ตำรวจห้ามใช้อาวุธปืนจริงในการระงับเหตุ หากคนร้ายยังไม่ใช้อาวุธปืน</li>
-                <li>การจับกุมต้องมีการแจ้งข้อกล่าวหาให้ผู้ต้องหาทราบทุกครั้ง</li>
-            </ul>
-        </div>
-
+        <!-- 3. แผงควบคุมแอดมิน (เพิ่ม/แก้ไข/ลบ) -->
         <div id="admin-view" class="admin-panel">
-            <h2>⚙️ แผงควบคุมแอดมิน</h2>
-            <div class="form-group"><textarea rows="5" placeholder="แก้ไขกฎการเล่น..."></textarea></div>
-            <button class="btn-submit">บันทึกข้อมูล</button>
+            <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px;">⚙️ แผงควบคุมแอดมิน (Admin Dashboard)</h2>
+            
+            <div style="background:#f9f9f9; padding:20px; border:2px dashed #ccc; margin-bottom:20px;">
+                <div class="form-group">
+                    <label>เลือกหมวดหมู่</label>
+                    <select id="new-cat">
+                        <option value="General">📜 กฎทั่วไป</option>
+                        <option value="Safezone">🛡️ พื้นที่ปลอดภัย</option>
+                        <option value="Police">🚓 กฎตำรวจ</option>
+                        <option value="Medic">🚑 กฎหมอ</option>
+                        <option value="Council">🏛️ กฎสภา</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ข้อความกฎ</label>
+                    <input type="text" id="new-rule" placeholder="พิมพ์ข้อกฎหมายที่ต้องการเพิ่มหรือแก้ไข...">
+                </div>
+                <button id="btn-save" class="btn-action" onclick="saveRule()">+ เพิ่มกฎใหม่</button>
+                <button id="btn-cancel-edit" onclick="cancelEdit()" style="display:none; padding:12px; font-weight:bold; cursor:pointer;">ยกเลิกการแก้ไข</button>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:25%;">หมวดหมู่</th>
+                        <th style="width:55%;">เนื้อหากฎ</th>
+                        <th style="width:20%; text-align:center;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-rule-list">
+                    <!-- ข้อมูลจะถูกดึงมาแสดงที่นี่ -->
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        // บัญชีแอดมินอัปเดตแล้ว
-        const adminAccounts = {
-            "Newmeenoy": "New2548",      // ชื่อผู้ใช้: "Newmeenoy"
-            "MJDEXN": "admin123",        // ชื่อผู้ใช้: "MJDEXN"
-            "YUYU": "9999"               // ชื่อผู้ใช้: "YUYU"
-        };
+        // ==========================================
+        // 1. ระบบจัดการข้อมูล (Data & LocalStorage)
+        // ==========================================
         
-        let isAdmin = false;
+        // กำหนดข้อมูลเริ่มต้น (ถ้าเข้ามาครั้งแรกและยังไม่มีข้อมูล จะแสดงชุดนี้)
+        const defaultRules = [
+            { cat: 'General', text: 'ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม' },
+            { cat: 'Safezone', text: 'ห้ามก่ออาชญากรรม ปล้น ขโมยรถ หรือทำร้ายร่างกายกันในพื้นที่ปลอดภัย' },
+            { cat: 'Police', text: 'ตำรวจห้ามใช้อาวุธปืนจริงในการระงับเหตุ หากคนร้ายยังไม่ใช้อาวุธปืน' },
+            { cat: 'Medic', text: 'ห้ามหมอชุบชีวิตผู้เล่นในพื้นที่ที่กำลังมีการปะทะกัน' },
+            { cat: 'Council', text: 'สมาชิกสภาต้องวางตัวเป็นกลางในทุกสถานการณ์' }
+        ];
 
-        function handleAuthClick() {
-            if(isAdmin) { logoutAdmin(); } else { document.getElementById('login-modal').style.display = 'flex'; }
+        // ดึงข้อมูลจากเบราว์เซอร์ ถ้าไม่มีให้ใช้ข้อมูลเริ่มต้น
+        let rules = JSON.parse(localStorage.getItem('levenUpRules')) || defaultRules;
+        let editIndex = -1; // ตัวแปรเก็บตำแหน่งข้อมูลตอนกด "แก้ไข"
+
+        // ฟังก์ชันแปลงชื่อหมวดภาษาอังกฤษ เป็นภาษาไทยสำหรับโชว์ในตาราง
+        function getCatName(cat) {
+            const names = { 'General': '📜 กฎทั่วไป', 'Safezone': '🛡️ พื้นที่ปลอดภัย', 'Police': '🚓 กฎตำรวจ', 'Medic': '🚑 กฎหมอ', 'Council': '🏛️ กฎสภา' };
+            return names[cat] || cat;
         }
-        function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
+
+        // ==========================================
+        // 2. ฟังก์ชันแผงควบคุม (Admin)
+        // ==========================================
+        function renderAdmin() {
+            const tbody = document.getElementById('admin-rule-list');
+            tbody.innerHTML = ''; // ล้างตารางก่อนวาดใหม่
+            
+            if(rules.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:gray;">ยังไม่มีข้อมูลกฎหมาย</td></tr>`;
+                return;
+            }
+
+            rules.forEach((r, index) => {
+                tbody.innerHTML += `
+                <tr>
+                    <td><strong>${getCatName(r.cat)}</strong></td>
+                    <td>${r.text}</td>
+                    <td style="text-align:center;">
+                        <button class="btn-edit" onclick="startEdit(${index})">แก้ไข</button>
+                        <button class="btn-delete" onclick="deleteRule(${index})">ลบ</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        function saveRule() {
+            const cat = document.getElementById('new-cat').value;
+            const text = document.getElementById('new-rule').value;
+            
+            if(!text.trim()) return alert('กรุณากรอกข้อความกฎหมายก่อนกดบันทึก!');
+
+            if(editIndex > -1) {
+                // กรณี: กำลัง "แก้ไข" ข้อมูลเดิม
+                rules[editIndex] = { cat, text };
+                alert('อัปเดตข้อมูลสำเร็จ!');
+                cancelEdit(); // รีเซ็ตปุ่มกลับเป็นโหมดเพิ่ม
+            } else {
+                // กรณี: "เพิ่ม" ข้อมูลใหม่
+                rules.push({ cat, text });
+            }
+            
+            // บันทึกลงเบราว์เซอร์
+            localStorage.setItem('levenUpRules', JSON.stringify(rules));
+            document.getElementById('new-rule').value = '';
+            renderAdmin(); // วาดตารางใหม่
+        }
+
+        function startEdit(index) {
+            editIndex = index; // จำว่ากำลังแก้แถวไหน
+            const r = rules[index];
+            
+            // ดึงข้อมูลไปใส่ในช่องกรอก
+            document.getElementById('new-cat').value = r.cat;
+            document.getElementById('new-rule').value = r.text;
+            
+            // เปลี่ยนหน้าตาปุ่ม
+            document.getElementById('btn-save').innerText = '💾 บันทึกการแก้ไข';
+            document.getElementById('btn-save').style.background = '#ff9f43';
+            document.getElementById('btn-cancel-edit').style.display = 'inline-block';
+            
+            // เลื่อนจอขึ้นไปตรงช่องกรอก
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            editIndex = -1;
+            document.getElementById('new-rule').value = '';
+            document.getElementById('btn-save').innerText = '+ เพิ่มกฎใหม่';
+            document.getElementById('btn-save').style.background = '#000';
+            document.getElementById('btn-cancel-edit').style.display = 'none';
+        }
+
+        function deleteRule(index) {
+            if(confirm('คุณแน่ใจหรือไม่ว่าต้องการลบกฎข้อนี้?')) {
+                rules.splice(index, 1); // ลบออกจาก Array
+                localStorage.setItem('levenUpRules', JSON.stringify(rules)); // อัปเดตเบราว์เซอร์
+                if(editIndex === index) cancelEdit(); // ถ้ากำลังแก้อันที่โดนลบ ให้ยกเลิกการแก้ด้วย
+                renderAdmin();
+            }
+        }
+
+        // ==========================================
+        // 3. ฟังก์ชันหน้าแสดงผลสำหรับผู้เล่น
+        // ==========================================
+        function openRule(cat) {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('rule-display').style.display = 'block';
+            
+            // ใส่ชื่อหัวข้อ
+            document.getElementById('rule-title').innerText = getCatName(cat);
+            
+            // กรองข้อมูลเฉพาะหมวดที่เลือกมาแสดง
+            const list = document.getElementById('rule-list');
+            list.innerHTML = '';
+            const filteredRules = rules.filter(r => r.cat === cat);
+            
+            if(filteredRules.length === 0) {
+                list.innerHTML = `<li style="color:gray; list-style:none;">ยังไม่มีข้อบังคับในหมวดหมู่นี้</li>`;
+            } else {
+                filteredRules.forEach(r => list.innerHTML += `<li>${r.text}</li>`);
+            }
+        }
+
+        function goBack() { 
+            document.getElementById('rule-display').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'grid';
+        }
+
+        // ==========================================
+        // 4. ระบบ Login
+        // ==========================================
+        const adminAccounts = { "Newmeenoy": "New2548", "MJDEXN": "MJ", "YUYU": "Yu" };
+        let isAdmin = false;
+        
+        function handleAuthClick() {
+            if(isAdmin) { 
+                // ตอนกดออกจากระบบ
+                isAdmin = false; 
+                document.getElementById('admin-view').style.display = 'none'; 
+                document.getElementById('rule-display').style.display = 'none'; 
+                document.getElementById('main-menu').style.display = 'grid'; 
+                document.getElementById('toggleBtn').innerText = 'เข้าสู่ระบบ Admin'; 
+                cancelEdit(); // เคลียร์ฟอร์ม
+            } else { 
+                document.getElementById('login-modal').style.display = 'flex'; 
+                document.getElementById('input-user').value = '';
+                document.getElementById('input-pass').value = '';
+            }
+        }
         
         function verifyLogin() {
             const u = document.getElementById('input-user').value;
             const p = document.getElementById('input-pass').value;
+            
             if(adminAccounts.hasOwnProperty(u) && adminAccounts[u] === p) {
                 isAdmin = true;
                 document.getElementById('login-modal').style.display = 'none';
                 document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('rule-display').style.display = 'none';
                 document.getElementById('admin-view').style.display = 'block';
-                document.getElementById('toggleBtn').innerText = 'ออกจากระบบ';
-            } else { alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'); }
+                document.getElementById('toggleBtn').innerText = 'ออกจากระบบ Admin';
+                renderAdmin(); // วาดข้อมูลแอดมิน
+            } else { 
+                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!'); 
+            }
         }
-        function logoutAdmin() {
-            isAdmin = false;
-            document.getElementById('admin-view').style.display = 'none';
-            document.getElementById('main-menu').style.display = 'grid';
-            document.getElementById('toggleBtn').innerText = 'เข้าสู่ระบบ Admin';
-        }
-        function openRule(id) { document.getElementById('main-menu').style.display = 'none'; document.getElementById(id).style.display = 'block'; }
-        function goBackToMenu() { 
-            document.querySelectorAll('.rule-content-wrapper').forEach(e => e.style.display = 'none');
-            if(!isAdmin) document.getElementById('main-menu').style.display = 'grid'; 
-        }
+        
+        function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
+
+        // ทำงานทันทีเมื่อโหลดหน้าเว็บ
+        renderAdmin();
     </script>
 </body>
 </html>
