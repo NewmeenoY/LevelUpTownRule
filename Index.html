@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Rules | LevenUp Town</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f4;
+            --container-bg: #ffffff;
+            --text-main: #111111;
+            --text-muted: #555555;
+            --border-color: #000000;
+            --accent-color: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            text-align: center;
+            padding: 50px 20px 40px;
+            background-color: var(--container-bg);
+            border-bottom: 4px solid var(--accent-color);
+        }
+        header h1 {
+            font-size: 3em; font-weight: 900; text-transform: uppercase; margin: 0; letter-spacing: 3px;
+        }
+
+        /* --- Navigation --- */
+        .nav-bar {
+            background-color: var(--accent-color);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: flex-end;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .nav-bar button {
+            background-color: transparent; color: #ffffff; border: 2px solid #ffffff;
+            padding: 8px 20px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;
+        }
+        .nav-bar button:hover { background-color: #ffffff; color: var(--accent-color); }
+
+        /* --- Container --- */
+        .container { max-width: 900px; margin: 40px auto; padding: 0 20px; animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- หน้าแรก (Grid Menu) --- */
+        .topic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .topic-card {
+            background-color: var(--container-bg); border: 2px solid var(--border-color);
+            padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s ease;
+            box-shadow: 4px 4px 0px rgba(0,0,0,1);
+        }
+        .topic-card:hover { transform: translateY(-5px); box-shadow: 8px 8px 0px rgba(0,0,0,1); background-color: #fafafa; }
+        .topic-icon { font-size: 3em; margin-bottom: 15px; }
+        .topic-title { font-size: 1.5em; font-weight: bold; margin: 0 0 5px 0; }
+        .topic-sub { color: var(--text-muted); margin: 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- หน้าเนื้อหากฎ --- */
+        .rule-content-wrapper {
+            display: none; background-color: var(--container-bg); border: 2px solid var(--border-color);
+            padding: 30px; box-shadow: 6px 6px 0px rgba(0,0,0,1); animation: fadeIn 0.4s ease-out;
+        }
+        .btn-back { background-color: var(--accent-color); color: #fff; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin-bottom: 20px; }
+        .btn-back:hover { background-color: #333; }
+        .rule-content-wrapper h2 { margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
+        .rule-content-wrapper ul { list-style-type: square; padding-left: 20px; color: var(--text-muted); }
+        .rule-content-wrapper ul li { margin-bottom: 12px; font-size: 1.1em; }
+
+        /* --- Admin Dashboard --- */
+        #admin-view { display: none; }
+        .admin-panel { background-color: var(--container-bg); border: 3px solid var(--accent-color); padding: 30px; box-shadow: 8px 8px 0px rgba(0,0,0,1); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 8px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 2px solid var(--border-color); }
+        .btn-submit { background-color: var(--accent-color); color: #fff; padding: 12px 25px; border: none; cursor: pointer; font-weight: bold; width: 100%; }
+
+        /* =========================================
+           UI: หน้าต่าง Login (Modal)
+        ========================================= */
+        .login-modal {
+            display: none; /* ซ่อนไว้รอการกดปุ่ม */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+        .login-box {
+            background-color: var(--container-bg);
+            padding: 40px; border: 4px solid var(--accent-color);
+            width: 90%; max-width: 400px;
+            box-shadow: 10px 10px 0px rgba(255,255,255,0.2);
+            animation: fadeIn 0.3s ease-out;
+        }
+        .login-box h2 { margin-top: 0; text-align: center; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 15px; }
+        .error-msg { color: #ff4757; font-weight: bold; text-align: center; margin-bottom: 15px; display: none; font-size: 0.9em; }
+        .flex-btn { display: flex; gap: 10px; margin-top: 25px; }
+        .btn-cancel { background-color: #ddd; color: #000; border: 2px solid #000; padding: 12px; font-weight: bold; cursor: pointer; width: 50%; }
+        .btn-cancel:hover { background-color: #ccc; }
+        .btn-login { background-color: #000; color: #fff; border: 2px solid #000; padding: 12px; font-weight: bold; cursor: pointer; width: 50%; }
+        .btn-login:hover { background-color: #333; }
+    </style>
+</head>
+<body>
+
+    <!-- หน้าต่างป๊อปอัป Login (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+    <div id="login-modal" class="login-modal">
+        <div class="login-box">
+            <h2>🔒 Admin Login</h2>
+            <p id="error-msg" class="error-msg">ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง!</p>
+            
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="input-user" placeholder="ระบุชื่อผู้ใช้งาน">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="input-pass" placeholder="ระบุรหัสผ่าน">
+            </div>
+
+            <div class="flex-btn">
+                <button class="btn-cancel" onclick="closeLogin()">ยกเลิก</button>
+                <button class="btn-login" onclick="verifyLogin()">เข้าสู่ระบบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-bar">
+        <button id="toggleBtn" onclick="handleAuthClick()">เข้าสู่ระบบ Admin</button>
+    </div>
+
+    <header>
+        <h1>SERVER RULES</h1>
+        <p style="font-weight: bold;">เลือกหมวดหมู่ที่ต้องการศึกษาข้อกฎหมาย</p>
+    </header>
+
+    <div class="container">
+
+        <!-- หน้าแรก (Grid Menu) -->
+        <div id="main-menu" class="topic-grid">
+            <div class="topic-card" onclick="openRule('rule-general')">
+                <div class="topic-icon">📜</div><h3 class="topic-title">กฎทั่วไป</h3><p class="topic-sub">General Rules</p>
+            </div>
+            <div class="topic-card" onclick="openRule('rule-safezone')">
+                <div class="topic-icon">🛡️</div><h3 class="topic-title">พื้นที่ปลอดภัย</h3><p class="topic-sub">Safezone</p>
+            </div>
+            <div class="topic-card" onclick="openRule('rule-gov')">
+                <div class="topic-icon">🚨</div><h3 class="topic-title">หน่วยงานรัฐ</h3><p class="topic-sub">Government</p>
+            </div>
+        </div>
+
+        <!-- เนื้อหากฎต่างๆ -->
+        <div id="rule-general" class="rule-content-wrapper">
+            <button class="btn-back" onclick="goBackToMenu()">◀ ย้อนกลับไปหน้าแรก</button>
+            <h2>📜 กฎทั่วไป (General Rules)</h2>
+            <ul>
+                <li>ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกมที่เอาเปรียบผู้เล่นอื่น</li>
+                <li>โปรดให้เกียรติผู้เล่นท่านอื่น ห้ามใช้คำพูดเหยียดหยาม หรือพาดพิงเรื่องส่วนตัว</li>
+            </ul>
+        </div>
+        <div id="rule-safezone" class="rule-content-wrapper">
+            <button class="btn-back" onclick="goBackToMenu()">◀ ย้อนกลับไปหน้าแรก</button>
+            <h2>🛡️ พื้นที่ปลอดภัย (Safezone)</h2>
+            <ul>
+                <li>ห้ามก่ออาชญากรรม ปล้น ขโมยรถ หรือทำร้ายร่างกายกันในพื้นที่ปลอดภัยเด็ดขาด</li>
+            </ul>
+        </div>
+        <div id="rule-gov" class="rule-content-wrapper">
+            <button class="btn-back" onclick="goBackToMenu()">◀ ย้อนกลับไปหน้าแรก</button>
+            <h2>🚨 กฎของหน่วยงานรัฐ (Government)</h2>
+            <ul>
+                <li>ตำรวจห้ามใช้อาวุธปืนจริงในการระงับเหตุ หากคนร้ายยังไม่ใช้อาวุธปืน</li>
+            </ul>
+        </div>
+
+        <!-- หน้าแอดมิน (Admin Dashboard) -->
+        <div id="admin-view">
+            <div class="admin-panel">
+                <h2 style="margin-top: 0; border-bottom: 2px solid #000; padding-bottom: 10px;">⚙️ แผงควบคุม (Admin Dashboard)</h2>
+                <h3>📝 เพิ่ม/แก้ไข กฎการเล่น</h3>
+                <div class="form-group">
+                    <label>หมวดหมู่กฎ</label>
+                    <select><option>กฎทั่วไป</option><option>พื้นที่ปลอดภัย</option><option>หน่วยงานรัฐ</option></select>
+                </div>
+                <div class="form-group">
+                    <label>ข้อความกฎระเบียบ</label>
+                    <textarea rows="4" placeholder="พิมพ์ข้อกฎหมายที่ต้องการเพิ่ม..."></textarea>
+                </div>
+                <button class="btn-submit">บันทึกข้อมูลกฎ</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // ฐานข้อมูลรหัสผ่านแอดมิน (จำลอง)
+        // คุณสามารถเพิ่มชื่อผู้ใช้และรหัสผ่านใหม่ลงในนี้ได้เลย
+        // ==========================================
+        const adminAccounts = {
+            "admin": "1234",      // ชื่อผู้ใช้: "admin", รหัสผ่าน: "1234"
+            "boss": "admin123",   // ชื่อผู้ใช้: "boss", รหัสผ่าน: "admin123"
+            "dev": "9999"         // ชื่อผู้ใช้: "dev", รหัสผ่าน: "9999"
+        };
+
+        let isAdmin = false;
+
+        // จัดการเมื่อกดปุ่มมุมขวาบน
+        function handleAuthClick() {
+            if (isAdmin) {
+                // ถ้าเป็นแอดมินอยู่แล้ว พอกดปุ่มให้ "ออกจากระบบ"
+                logoutAdmin();
+            } else {
+                // ถ้ายังไม่เป็นแอดมิน ให้ "เปิดหน้าต่าง Login"
+                document.getElementById('login-modal').style.display = 'flex';
+                document.getElementById('error-msg').style.display = 'none'; // ซ่อนข้อความแจ้งเตือนผิดพลาด
+                document.getElementById('input-user').value = ''; // เคลียร์ช่องพิมพ์
+                document.getElementById('input-pass').value = '';
+            }
+        }
+
+        // ปิดหน้าต่าง Login (กดยกเลิก)
+        function closeLogin() {
+            document.getElementById('login-modal').style.display = 'none';
+        }
+
+        // ตรวจสอบการ Login
+        function verifyLogin() {
+            const user = document.getElementById('input-user').value;
+            const pass = document.getElementById('input-pass').value;
+
+            // เช็คว่าชื่อผู้ใช้นี้มีในระบบไหม และรหัสผ่านตรงกันหรือเปล่า
+            if (adminAccounts.hasOwnProperty(user) && adminAccounts[user] === pass) {
+                // ล็อกอินสำเร็จ!
+                isAdmin = true;
+                closeLogin();
+                
+                // สลับไปหน้า Admin
+                goBackToMenu(); // ซ่อนหน้าเนื้อหากฎ
+                document.getElementById('main-menu').style.display = 'none'; // ซ่อนหน้าแรก
+                document.getElementById('admin-view').style.display = 'block'; // โชว์หน้าแอดมิน
+                
+                // เปลี่ยนปุ่มมุมขวาบน
+                const btn = document.getElementById('toggleBtn');
+                btn.innerText = 'ออกจากระบบ Admin';
+                btn.style.backgroundColor = '#ffffff';
+                btn.style.color = 'var(--accent-color)';
+            } else {
+                // ล็อกอินไม่สำเร็จ โชว์ข้อความเตือน
+                document.getElementById('error-msg').style.display = 'block';
+            }
+        }
+
+        // ออกจากระบบแอดมิน
+        function logoutAdmin() {
+            isAdmin = false;
+            goBackToMenu(); // กลับไปหน้าแรกเสมอ
+            document.getElementById('admin-view').style.display = 'none';
+            
+            // คืนค่าปุ่มมุมขวาบน
+            const btn = document.getElementById('toggleBtn');
+            btn.innerText = 'เข้าสู่ระบบ Admin';
+            btn.style.backgroundColor = 'transparent';
+            btn.style.color = '#ffffff';
+        }
+
+        // ฟังก์ชันเปิด-ปิด เนื้อหากฎ
+        function openRule(ruleId) {
+            document.getElementById('main-menu').style.display = 'none'; 
+            document.getElementById(ruleId).style.display = 'block'; 
+        }
+        function goBackToMenu() {
+            const rules = document.getElementsByClassName('rule-content-wrapper');
+            for(let i = 0; i < rules.length; i++) { rules[i].style.display = 'none'; }
+            if(!isAdmin) { document.getElementById('main-menu').style.display = 'grid'; }
+        }
+    </script>
+</body>
+</html>
