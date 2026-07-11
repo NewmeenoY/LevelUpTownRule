@@ -63,13 +63,13 @@
     <div class="nav-bar"><button id="toggleBtn" onclick="handleAuthClick()">เข้าสู่ระบบ Admin</button></div>
 
     <header>
-        <!-- สังเกตชื่อรูปภาพ: ต้องตั้งชื่อไฟล์ใน GitHub ให้เป็น LEVELUPTOWN.jpg เป๊ะๆ -->
+        <!-- เปลี่ยนชื่อไฟล์รูปภาพเป็นนามสกุล .png แล้ว -->
         <img src="LEVELUPTOWN.png" alt="Logo" class="server-logo">
         <h1 style="margin:0; font-size:3em; text-transform:uppercase; font-weight:900;">LEVENUP TOWN</h1>
     </header>
 
     <div class="container">
-        <!-- 1. เมนูหลัก (แยก 5 หมวด) -->
+        <!-- 1. เมนูหลัก (หน้าของผู้เล่น) -->
         <div id="main-menu" class="topic-grid">
             <div class="topic-card" onclick="openRule('General')"><h3>📜 กฎทั่วไป</h3></div>
             <div class="topic-card" onclick="openRule('Safezone')"><h3>🛡️ พื้นที่ปลอดภัย</h3></div>
@@ -78,42 +78,45 @@
             <div class="topic-card" onclick="openRule('Council')"><h3>🏛️ กฎสภา</h3></div>
         </div>
 
-        <!-- 2. หน้าแสดงเนื้อหากฎ -->
+        <!-- 2. หน้าแสดงเนื้อหากฎ (หน้าของผู้เล่น) -->
         <div id="rule-display" class="rule-content">
             <button class="btn-action" style="margin-bottom:20px;" onclick="goBack()">◀ ย้อนกลับหน้าแรก</button>
             <h2 id="rule-title" style="border-bottom:2px solid #000; padding-bottom:10px; margin-top:0;"></h2>
             <ul id="rule-list"></ul>
         </div>
 
-        <!-- 3. แผงควบคุมแอดมิน (เพิ่ม/แก้ไข/ลบ) -->
+        <!-- 3. แผงควบคุมแอดมิน -->
         <div id="admin-view" class="admin-panel">
             <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px;">⚙️ แผงควบคุมแอดมิน (Admin Dashboard)</h2>
             
+            <!-- ตัวเลือกหมวดหมู่ที่ต้องการจัดการ -->
+            <div style="background:#eee; padding:15px; border:2px solid #000; margin-bottom:20px;">
+                <label style="font-weight:bold; display:block; margin-bottom:8px; font-size:1.1em;">📂 เลือกหมวดหมู่ที่ต้องการจัดการ:</label>
+                <select id="admin-cat-filter" onchange="renderAdmin()" style="width:100%; padding:10px; border:2px solid #000; font-weight:bold; font-size:1em;">
+                    <option value="General">📜 กฎทั่วไป</option>
+                    <option value="Safezone">🛡️ พื้นที่ปลอดภัย</option>
+                    <option value="Police">🚓 กฎตำรวจ</option>
+                    <option value="Medic">🚑 กฎหมอ</option>
+                    <option value="Council">🏛️ กฎสภา</option>
+                </select>
+            </div>
+
+            <!-- ฟอร์มเพิ่ม/แก้ไขกฎในหมวดหมู่นั้นๆ -->
             <div style="background:#f9f9f9; padding:20px; border:2px dashed #ccc; margin-bottom:20px;">
                 <div class="form-group">
-                    <label>เลือกหมวดหมู่</label>
-                    <select id="new-cat">
-                        <option value="General">📜 กฎทั่วไป</option>
-                        <option value="Safezone">🛡️ พื้นที่ปลอดภัย</option>
-                        <option value="Police">🚓 กฎตำรวจ</option>
-                        <option value="Medic">🚑 กฎหมอ</option>
-                        <option value="Council">🏛️ กฎสภา</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>ข้อความกฎ</label>
+                    <label>ข้อความกฎ <span id="current-cat-label" style="color:gray;"></span></label>
                     <input type="text" id="new-rule" placeholder="พิมพ์ข้อกฎหมายที่ต้องการเพิ่มหรือแก้ไข...">
                 </div>
                 <button id="btn-save" class="btn-action" onclick="saveRule()">+ เพิ่มกฎใหม่</button>
                 <button id="btn-cancel-edit" onclick="cancelEdit()" style="display:none; padding:12px; font-weight:bold; cursor:pointer;">ยกเลิกการแก้ไข</button>
             </div>
             
+            <!-- ตารางแสดงกฎเฉพาะหมวดที่เลือก -->
             <table>
                 <thead>
                     <tr>
-                        <th style="width:25%;">หมวดหมู่</th>
-                        <th style="width:55%;">เนื้อหากฎ</th>
-                        <th style="width:20%; text-align:center;">จัดการ</th>
+                        <th style="width:75%;">เนื้อหากฎ</th>
+                        <th style="width:25%; text-align:center;">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody id="admin-rule-list">
@@ -128,7 +131,6 @@
         // 1. ระบบจัดการข้อมูล (Data & LocalStorage)
         // ==========================================
         
-        // กำหนดข้อมูลเริ่มต้น (ถ้าเข้ามาครั้งแรกและยังไม่มีข้อมูล จะแสดงชุดนี้)
         const defaultRules = [
             { cat: 'General', text: 'ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม' },
             { cat: 'Safezone', text: 'ห้ามก่ออาชญากรรม ปล้น ขโมยรถ หรือทำร้ายร่างกายกันในพื้นที่ปลอดภัย' },
@@ -137,11 +139,9 @@
             { cat: 'Council', text: 'สมาชิกสภาต้องวางตัวเป็นกลางในทุกสถานการณ์' }
         ];
 
-        // ดึงข้อมูลจากเบราว์เซอร์ ถ้าไม่มีให้ใช้ข้อมูลเริ่มต้น
         let rules = JSON.parse(localStorage.getItem('levenUpRules')) || defaultRules;
         let editIndex = -1; // ตัวแปรเก็บตำแหน่งข้อมูลตอนกด "แก้ไข"
 
-        // ฟังก์ชันแปลงชื่อหมวดภาษาอังกฤษ เป็นภาษาไทยสำหรับโชว์ในตาราง
         function getCatName(cat) {
             const names = { 'General': '📜 กฎทั่วไป', 'Safezone': '🛡️ พื้นที่ปลอดภัย', 'Police': '🚓 กฎตำรวจ', 'Medic': '🚑 กฎหมอ', 'Council': '🏛️ กฎสภา' };
             return names[cat] || cat;
@@ -150,64 +150,71 @@
         // ==========================================
         // 2. ฟังก์ชันแผงควบคุม (Admin)
         // ==========================================
+        
         function renderAdmin() {
-            const tbody = document.getElementById('admin-rule-list');
-            tbody.innerHTML = ''; // ล้างตารางก่อนวาดใหม่
-            
-            if(rules.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:gray;">ยังไม่มีข้อมูลกฎหมาย</td></tr>`;
-                return;
-            }
+            // ดูว่าแอดมินเลือกหมวดหมู่ไหนอยู่
+            const selectedCat = document.getElementById('admin-cat-filter').value;
+            document.getElementById('current-cat-label').innerText = `(เพิ่มลงใน: ${getCatName(selectedCat)})`;
 
-            rules.forEach((r, index) => {
-                tbody.innerHTML += `
-                <tr>
-                    <td><strong>${getCatName(r.cat)}</strong></td>
-                    <td>${r.text}</td>
-                    <td style="text-align:center;">
-                        <button class="btn-edit" onclick="startEdit(${index})">แก้ไข</button>
-                        <button class="btn-delete" onclick="deleteRule(${index})">ลบ</button>
-                    </td>
-                </tr>`;
+            const tbody = document.getElementById('admin-rule-list');
+            tbody.innerHTML = ''; 
+            
+            let hasRules = false;
+
+            // วนลูปหาเฉพาะกฎที่ตรงกับหมวดหมู่ที่เลือก
+            rules.forEach((r, originalIndex) => {
+                if(r.cat === selectedCat) {
+                    hasRules = true;
+                    tbody.innerHTML += `
+                    <tr>
+                        <td>${r.text}</td>
+                        <td style="text-align:center;">
+                            <button class="btn-edit" onclick="startEdit(${originalIndex})">แก้ไข</button>
+                            <button class="btn-delete" onclick="deleteRule(${originalIndex})">ลบ</button>
+                        </td>
+                    </tr>`;
+                }
             });
+
+            if(!hasRules) {
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray; padding:20px;">ยังไม่มีข้อมูลกฎหมายในหมวดหมู่นี้</td></tr>`;
+            }
         }
 
         function saveRule() {
-            const cat = document.getElementById('new-cat').value;
+            const cat = document.getElementById('admin-cat-filter').value; // บันทึกลงหมวดหมู่ที่เลือกอยู่
             const text = document.getElementById('new-rule').value;
             
             if(!text.trim()) return alert('กรุณากรอกข้อความกฎหมายก่อนกดบันทึก!');
 
             if(editIndex > -1) {
-                // กรณี: กำลัง "แก้ไข" ข้อมูลเดิม
+                // อัปเดตข้อมูลเดิม
                 rules[editIndex] = { cat, text };
                 alert('อัปเดตข้อมูลสำเร็จ!');
-                cancelEdit(); // รีเซ็ตปุ่มกลับเป็นโหมดเพิ่ม
+                cancelEdit(); 
             } else {
-                // กรณี: "เพิ่ม" ข้อมูลใหม่
+                // เพิ่มข้อมูลใหม่
                 rules.push({ cat, text });
             }
             
-            // บันทึกลงเบราว์เซอร์
             localStorage.setItem('levenUpRules', JSON.stringify(rules));
             document.getElementById('new-rule').value = '';
-            renderAdmin(); // วาดตารางใหม่
+            renderAdmin();
         }
 
         function startEdit(index) {
-            editIndex = index; // จำว่ากำลังแก้แถวไหน
+            editIndex = index;
             const r = rules[index];
             
-            // ดึงข้อมูลไปใส่ในช่องกรอก
-            document.getElementById('new-cat').value = r.cat;
+            // ปรับตัวกรองให้ตรงกับข้อมูลที่กำลังแก้ (เผื่อเหนียว)
+            document.getElementById('admin-cat-filter').value = r.cat;
+            document.getElementById('current-cat-label').innerText = `(แก้ไขของ: ${getCatName(r.cat)})`;
             document.getElementById('new-rule').value = r.text;
             
-            // เปลี่ยนหน้าตาปุ่ม
             document.getElementById('btn-save').innerText = '💾 บันทึกการแก้ไข';
             document.getElementById('btn-save').style.background = '#ff9f43';
             document.getElementById('btn-cancel-edit').style.display = 'inline-block';
             
-            // เลื่อนจอขึ้นไปตรงช่องกรอก
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -221,9 +228,9 @@
 
         function deleteRule(index) {
             if(confirm('คุณแน่ใจหรือไม่ว่าต้องการลบกฎข้อนี้?')) {
-                rules.splice(index, 1); // ลบออกจาก Array
-                localStorage.setItem('levenUpRules', JSON.stringify(rules)); // อัปเดตเบราว์เซอร์
-                if(editIndex === index) cancelEdit(); // ถ้ากำลังแก้อันที่โดนลบ ให้ยกเลิกการแก้ด้วย
+                rules.splice(index, 1);
+                localStorage.setItem('levenUpRules', JSON.stringify(rules));
+                if(editIndex === index) cancelEdit(); 
                 renderAdmin();
             }
         }
@@ -235,10 +242,8 @@
             document.getElementById('main-menu').style.display = 'none';
             document.getElementById('rule-display').style.display = 'block';
             
-            // ใส่ชื่อหัวข้อ
             document.getElementById('rule-title').innerText = getCatName(cat);
             
-            // กรองข้อมูลเฉพาะหมวดที่เลือกมาแสดง
             const list = document.getElementById('rule-list');
             list.innerHTML = '';
             const filteredRules = rules.filter(r => r.cat === cat);
@@ -258,18 +263,24 @@
         // ==========================================
         // 4. ระบบ Login
         // ==========================================
-        const adminAccounts = { "Newmeenoy": "New", "MJDEXN": "MJ", "YUYU": "Yu" };
+        
+        // อัปเดตบัญชีแอดมินตามที่คุณแจ้งมา
+        const adminAccounts = { 
+            "Newmeenoy": "New", 
+            "MJDEXN": "MJ", 
+            "YUYU": "Yu" 
+        };
+        
         let isAdmin = false;
         
         function handleAuthClick() {
             if(isAdmin) { 
-                // ตอนกดออกจากระบบ
                 isAdmin = false; 
                 document.getElementById('admin-view').style.display = 'none'; 
                 document.getElementById('rule-display').style.display = 'none'; 
                 document.getElementById('main-menu').style.display = 'grid'; 
                 document.getElementById('toggleBtn').innerText = 'เข้าสู่ระบบ Admin'; 
-                cancelEdit(); // เคลียร์ฟอร์ม
+                cancelEdit(); 
             } else { 
                 document.getElementById('login-modal').style.display = 'flex'; 
                 document.getElementById('input-user').value = '';
@@ -288,7 +299,10 @@
                 document.getElementById('rule-display').style.display = 'none';
                 document.getElementById('admin-view').style.display = 'block';
                 document.getElementById('toggleBtn').innerText = 'ออกจากระบบ Admin';
-                renderAdmin(); // วาดข้อมูลแอดมิน
+                
+                // รีเซ็ตตัวกรองให้เป็น General เสมอเวลาเพิ่งเข้าสู่ระบบ
+                document.getElementById('admin-cat-filter').value = 'General';
+                renderAdmin(); 
             } else { 
                 alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!'); 
             }
@@ -296,7 +310,7 @@
         
         function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
-        // ทำงานทันทีเมื่อโหลดหน้าเว็บ
+        // เริ่มต้นด้วยการล้างฟอร์ม
         renderAdmin();
     </script>
 </body>
