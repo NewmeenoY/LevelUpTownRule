@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Rules | LevenUp Town</title>
+    
+    <!-- เพิ่มโค้ดบรรทัดนี้เพื่อดึงรูปไปทำไอคอนบนแท็บเบราว์เซอร์ (Favicon) -->
+    <link rel="icon" href="LEVELUPTOWN.png" type="image/png">
+
     <style>
         :root { --bg-color: #f4f4f4; --container-bg: #ffffff; --text-main: #111111; --border-color: #000000; --accent-color: #000000; }
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -63,7 +67,6 @@
     <div class="nav-bar"><button id="toggleBtn" onclick="handleAuthClick()">เข้าสู่ระบบ Admin</button></div>
 
     <header>
-        <!-- เปลี่ยนชื่อไฟล์รูปภาพเป็นนามสกุล .png แล้ว -->
         <img src="LEVELUPTOWN.png" alt="Logo" class="server-logo">
         <h1 style="margin:0; font-size:3em; text-transform:uppercase; font-weight:900;">LEVENUP TOWN</h1>
     </header>
@@ -140,7 +143,7 @@
         ];
 
         let rules = JSON.parse(localStorage.getItem('levenUpRules')) || defaultRules;
-        let editIndex = -1; // ตัวแปรเก็บตำแหน่งข้อมูลตอนกด "แก้ไข"
+        let editIndex = -1; 
 
         function getCatName(cat) {
             const names = { 'General': '📜 กฎทั่วไป', 'Safezone': '🛡️ พื้นที่ปลอดภัย', 'Police': '🚓 กฎตำรวจ', 'Medic': '🚑 กฎหมอ', 'Council': '🏛️ กฎสภา' };
@@ -152,7 +155,6 @@
         // ==========================================
         
         function renderAdmin() {
-            // ดูว่าแอดมินเลือกหมวดหมู่ไหนอยู่
             const selectedCat = document.getElementById('admin-cat-filter').value;
             document.getElementById('current-cat-label').innerText = `(เพิ่มลงใน: ${getCatName(selectedCat)})`;
 
@@ -161,7 +163,6 @@
             
             let hasRules = false;
 
-            // วนลูปหาเฉพาะกฎที่ตรงกับหมวดหมู่ที่เลือก
             rules.forEach((r, originalIndex) => {
                 if(r.cat === selectedCat) {
                     hasRules = true;
@@ -182,18 +183,16 @@
         }
 
         function saveRule() {
-            const cat = document.getElementById('admin-cat-filter').value; // บันทึกลงหมวดหมู่ที่เลือกอยู่
+            const cat = document.getElementById('admin-cat-filter').value; 
             const text = document.getElementById('new-rule').value;
             
             if(!text.trim()) return alert('กรุณากรอกข้อความกฎหมายก่อนกดบันทึก!');
 
             if(editIndex > -1) {
-                // อัปเดตข้อมูลเดิม
                 rules[editIndex] = { cat, text };
                 alert('อัปเดตข้อมูลสำเร็จ!');
                 cancelEdit(); 
             } else {
-                // เพิ่มข้อมูลใหม่
                 rules.push({ cat, text });
             }
             
@@ -206,7 +205,6 @@
             editIndex = index;
             const r = rules[index];
             
-            // ปรับตัวกรองให้ตรงกับข้อมูลที่กำลังแก้ (เผื่อเหนียว)
             document.getElementById('admin-cat-filter').value = r.cat;
             document.getElementById('current-cat-label').innerText = `(แก้ไขของ: ${getCatName(r.cat)})`;
             document.getElementById('new-rule').value = r.text;
@@ -264,7 +262,6 @@
         // 4. ระบบ Login
         // ==========================================
         
-        // อัปเดตบัญชีแอดมินตามที่คุณแจ้งมา
         const adminAccounts = { 
             "Newmeenoy": "New", 
             "MJDEXN": "MJ", 
@@ -300,7 +297,6 @@
                 document.getElementById('admin-view').style.display = 'block';
                 document.getElementById('toggleBtn').innerText = 'ออกจากระบบ Admin';
                 
-                // รีเซ็ตตัวกรองให้เป็น General เสมอเวลาเพิ่งเข้าสู่ระบบ
                 document.getElementById('admin-cat-filter').value = 'General';
                 renderAdmin(); 
             } else { 
@@ -310,7 +306,6 @@
         
         function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
-        // เริ่มต้นด้วยการล้างฟอร์ม
         renderAdmin();
     </script>
 </body>
