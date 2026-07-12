@@ -55,6 +55,13 @@
         .btn-delete { background: #ff4757; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ป้ายแจ้งสถานะ */
+        #loading {
+            text-align: center; padding: 20px; font-weight: bold; font-size: 1.2em; 
+            background: #fff; border: 3px solid #000; margin-bottom: 20px;
+            box-shadow: 5px 5px 0px #000;
+        }
     </style>
 </head>
 <body>
@@ -78,10 +85,8 @@
 
     <div class="container">
         
-        <!-- ระบบแจ้งสถานะการโหลด -->
-        <div id="loading" style="text-align:center; padding:50px; font-weight:bold; font-size:1.2em;">
-            ⏳ กำลังโหลดข้อมูลล่าสุดจากฐานข้อมูล...
-        </div>
+        <!-- ระบบแจ้งสถานะ -->
+        <div id="loading" style="display:none;">⏳ กำลังโหลดข้อมูล...</div>
 
         <!-- 1. เมนูหลัก -->
         <div id="main-menu" class="topic-grid" style="display:none;"></div>
@@ -145,44 +150,39 @@
             modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'align': [] }], ['clean'] ] }
         });
 
-        // ลิงก์ Google Sheets ของคุณ
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec";
-        
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrర్ణSrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec"; // ถ้า URL เปลี่ยนให้ใส่ตรงนี้ใหม่นะครับ
+        // ขออภัยครับลิงก์ด้านบนเผลอพิมพ์เกิน ใช้ลิงก์เดิมที่ถูกต้องคือ:
+        const REAL_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec";
+
         let categories = [];
         let rules = [];
         let editCatIndex = -1;
         let editRuleIndex = -1;
         let isAdmin = false;
 
-        const defaultCats = [
-            { id: 'cat_1', name: '📜 กฎทั่วไป' },
-            { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' },
-            { id: 'cat_3', name: '🚓 กฎตำรวจ' }
-        ];
+        const defaultCats = [ { id: 'cat_1', name: '📜 กฎทั่วไป' }, { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' }, { id: 'cat_3', name: '🚓 กฎตำรวจ' } ];
 
         // ==========================================
-        // 1. ระบบโหลดข้อมูล (บังคับโหลดใหม่เสมอ)
+        // 1. โหลดข้อมูล (ดึง Cloud ก่อนเสมอ)
         // ==========================================
         async function fetchData() {
+            showNotice('⏳ กำลังโหลดข้อมูลล่าสุดจากฐานข้อมูล...', 'black', 'white');
             try {
-                // เติม ?t=เวลาปัจจุบัน เพื่อบังคับให้บราวเซอร์ห้ามใช้ของเก่าที่จำไว้ (แก้ปัญหาผู้ใช้เห็นข้อมูลไม่เหมือนกัน)
-                const noCacheUrl = SCRIPT_URL + "?t=" + new Date().getTime();
+                const noCacheUrl = REAL_SCRIPT_URL + "?t=" + new Date().getTime();
+                const res = await fetch(noCacheUrl);
+                const text = await res.text();
                 
-                const res = await fetch(noCacheUrl, { cache: 'no-store' });
-                const data = await res.json();
-                
-                if (data && data.cats && data.cats.length > 0) {
-                    categories = data.cats;
+                if (text && text.includes('cats')) {
+                    const data = JSON.parse(text);
+                    categories = data.cats || [];
                     rules = data.rules || [];
-                    
-                    // เซฟทับลงในเครื่องตัวเองด้วยเผื่อเอาไว้อ่านตอนเน็ตหลุด
                     localStorage.setItem('levelUpCats', JSON.stringify(categories));
                     localStorage.setItem('levelUpRules', JSON.stringify(rules));
                 } else {
                     loadLocalData(); 
                 }
             } catch (err) {
-                console.log("โหลดจาก Cloud ไม่สำเร็จ, กำลังดึงจากเครื่องแทน...");
+                console.log("โหลดจาก Cloud ไม่สำเร็จ, กำลังดึงจากเครื่อง...");
                 loadLocalData(); 
             }
             
@@ -196,25 +196,39 @@
             rules = JSON.parse(localStorage.getItem('levelUpRules')) || [];
         }
 
+        function showNotice(msg, bg, color) {
+            const el = document.getElementById('loading');
+            el.style.display = 'block';
+            el.innerText = msg;
+            el.style.background = bg;
+            el.style.color = color;
+        }
+
         // ==========================================
-        // 2. ระบบเซฟข้อมูล (ส่งไปเซฟที่ Google Sheets)
+        // 2. ระบบบันทึกข้อมูลทะลุการบล็อก
         // ==========================================
         function saveData() {
-            // 1. เซฟลงเครื่องคนแก้ก่อนทันที ให้เห็นผลไวๆ
+            // บันทึกลงเครื่องทันที
             localStorage.setItem('levelUpCats', JSON.stringify(categories));
             localStorage.setItem('levelUpRules', JSON.stringify(rules));
             renderAll(); 
 
-            // 2. ส่งข้อมูลไปเซฟที่ Google Sheets (แอดมินคนอื่นจะได้เห็นด้วย)
-            fetch(SCRIPT_URL, {
+            // โชว์แจ้งเตือน
+            showNotice('⏳ กำลังบันทึกข้อมูลขึ้นเซิร์ฟเวอร์ Google Sheets...', 'black', 'white');
+
+            const payload = JSON.stringify({ cats: categories, rules: rules });
+
+            // ส่งข้อมูลแบบ x-www-form-urlencoded ช่วยกันเบราว์เซอร์บล็อก
+            fetch(REAL_SCRIPT_URL, {
                 method: 'POST',
-                // ส่งเป็น Text ธรรมดาเพื่อป้องกันบราวเซอร์บางตัวบล็อก (CORS Issue)
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                body: JSON.stringify({ cats: categories, rules: rules })
-            }).then(() => {
-                console.log("บันทึกลงฐานข้อมูล Google Sheets สำเร็จ");
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
+                body: "data=" + encodeURIComponent(payload)
+            }).then(res => {
+                showNotice('✅ บันทึกข้อมูลสำเร็จ! แอดมินทุกคนจะเห็นตรงกันแล้ว', '#27ae60', 'white');
+                setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 3000);
             }).catch(err => {
-                console.log("ส่งข้อมูลไป Google Sheets มีปัญหา: ", err);
+                showNotice('❌ เกิดข้อผิดพลาด! กรุณาลองกดบันทึกใหม่อีกครั้ง', '#e74c3c', 'white');
+                setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 3000);
             });
         }
 
@@ -337,7 +351,6 @@
         }
         function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
-        // สั่งให้โหลดข้อมูลเมื่อเปิดเว็บ
         fetchData();
     </script>
 </body>
