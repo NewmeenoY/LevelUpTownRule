@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Rules | LevelUp Town</title>
+    <title>Server Rules | LevelUP Town</title>
     
     <link rel="icon" href="LEVELUPTOWN.png" type="image/png">
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -78,8 +78,13 @@
 
     <div class="container">
         
+        <!-- ระบบแจ้งสถานะการโหลด -->
+        <div id="loading" style="text-align:center; padding:50px; font-weight:bold; font-size:1.2em;">
+            ⏳ กำลังโหลดข้อมูลจากฐานข้อมูล...
+        </div>
+
         <!-- 1. เมนูหลัก -->
-        <div id="main-menu" class="topic-grid"></div>
+        <div id="main-menu" class="topic-grid" style="display:none;"></div>
 
         <!-- 2. หน้าแสดงเนื้อหากฎ -->
         <div id="rule-display" class="rule-content">
@@ -143,85 +148,46 @@
         });
 
         // ==========================================
-        // 1. ระบบข้อมูล และ การกู้คืนข้อมูลอัตโนมัติ
+        // 1. ระบบดึงข้อมูลจาก Google Sheets (API)
         // ==========================================
-        const defaultCats = [
-            { id: 'cat_1', name: '📜 กฎทั่วไป' },
-            { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' },
-            { id: 'cat_3', name: '🚓 กฎตำรวจ' },
-            { id: 'cat_4', name: '🚑 กฎหมอ' },
-            { id: 'cat_5', name: '🏛️ กฎสภา' },
-            { id: 'cat_6', name: '🚨 หน่วยงานรัฐ' }
-        ];
-
-        let categories = JSON.parse(localStorage.getItem('levelUpCats')) || defaultCats;
-        let rules = JSON.parse(localStorage.getItem('levelUpRules')) || [];
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec";
         
-        // สคริปต์กู้คืนข้อมูลที่หายไป (Auto-Recovery)
-        function recoverOldData() {
-            let hasRecovered = false;
-
-            // 1. กู้จากเวอร์ชันแรกสุด (serverRules)
-            let oldServerRules = JSON.parse(localStorage.getItem('serverRules'));
-            if (oldServerRules && oldServerRules.length > 0) {
-                oldServerRules.forEach(r => {
-                    let cid = 'cat_1';
-                    if(r.cat === 'Safezone') cid = 'cat_2';
-                    if(r.cat === 'Government') cid = 'cat_6';
-                    
-                    if(!rules.find(x => x.text === r.text || x.text === `<p>${r.text}</p>`)) {
-                        rules.push({ catId: cid, text: `<p>${r.text}</p>` });
-                        hasRecovered = true;
-                    }
-                });
-                localStorage.removeItem('serverRules'); // ลบทิ้งเมื่อกู้เสร็จ
-            }
-
-            // 2. กู้จากเวอร์ชันที่ 2 (ข้อมูลแบบเก่าที่ใช้ cat แทน catId)
-            let newRulesArray = [];
-            rules.forEach(r => {
-                if (r.catId) {
-                    newRulesArray.push(r);
-                } else if (r.cat) {
-                    let cid = 'cat_1';
-                    if(r.cat === 'Safezone') cid = 'cat_2';
-                    if(r.cat === 'Police') cid = 'cat_3';
-                    if(r.cat === 'Medic') cid = 'cat_4';
-                    if(r.cat === 'Council') cid = 'cat_5';
-                    if(r.cat === 'Government') cid = 'cat_6';
-                    
-                    // ห่อแท็ก p ให้เข้ากับระบบ Text Editor
-                    let formattedText = r.text.includes('<p>') ? r.text : `<p>${r.text}</p>`;
-                    newRulesArray.push({ catId: cid, text: formattedText });
-                    hasRecovered = true;
-                }
-            });
-            rules = newRulesArray;
-
-            // ถ้าไม่มีข้อมูลเลย ให้ใส่ข้อมูลตั้งต้น
-            if(rules.length === 0) {
-                rules = [
-                    { catId: 'cat_1', text: '<p>ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม</p>' },
-                    { catId: 'cat_2', text: '<p>ห้ามก่ออาชญากรรมในพื้นที่ปลอดภัย</p>' }
-                ];
-                hasRecovered = true;
-            }
-
-            if (hasRecovered) {
-                localStorage.setItem('levenUpRules', JSON.stringify(rules));
-            }
-        }
-        
-        // รันคำสั่งกู้คืนทันทีเมื่อโหลดเว็บ
-        recoverOldData();
-
+        let categories = [];
+        let rules = [];
         let editCatIndex = -1;
         let editRuleIndex = -1;
+        let isAdmin = false;
 
+        // ดึงข้อมูลเมื่อเข้าเว็บ
+        async function fetchData() {
+            try {
+                const res = await fetch(SCRIPT_URL);
+                const data = await res.json();
+                
+                categories = data.cats || [];
+                rules = data.rules || [];
+                
+                document.getElementById('loading').style.display = 'none'; // ซ่อนข้อความโหลด
+                
+                if(!isAdmin) {
+                    document.getElementById('main-menu').style.display = 'grid'; // แสดงเมนูหลัก
+                }
+                
+                renderAll();
+            } catch (err) {
+                document.getElementById('loading').innerText = "❌ เกิดข้อผิดพลาดในการโหลดข้อมูล (ตรวจสอบลิงก์ Google Sheets)";
+                console.error(err);
+            }
+        }
+
+        // ส่งข้อมูลไปเซฟที่ Google Sheets
         function saveData() {
-            localStorage.setItem('levenUpCats', JSON.stringify(categories));
-            localStorage.setItem('levenUpRules', JSON.stringify(rules));
-            renderAll();
+            renderAll(); // อัปเดตหน้าจอแอดมินทันทีให้เห็นผล
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // สำคัญ: ป้องกัน Error เรื่อง CORS
+                body: JSON.stringify({ cats: categories, rules: rules })
+            });
         }
 
         function getCatName(id) {
@@ -238,7 +204,6 @@
 
             if(editCatIndex > -1) {
                 categories[editCatIndex].name = name;
-                alert('แก้ไขชื่อหมวดหมู่สำเร็จ!');
                 cancelCatEdit();
             } else {
                 const newId = 'cat_' + Date.now();
@@ -269,7 +234,6 @@
                 const catId = categories[index].id;
                 rules = rules.filter(r => r.catId !== catId); 
                 categories.splice(index, 1);
-                
                 if(editCatIndex === index) cancelCatEdit();
                 saveData();
             }
@@ -288,7 +252,6 @@
 
             if(editRuleIndex > -1) {
                 rules[editRuleIndex] = { catId, text: textHTML };
-                alert('อัปเดตกฎสำเร็จ!');
                 cancelRuleEdit(); 
             } else {
                 rules.push({ catId, text: textHTML });
@@ -399,7 +362,6 @@
         }
 
         const adminAccounts = { "Newmeenoy": "New", "MJDEXN": "MJ", "YUYU": "Yu", "WH": "7731" };
-        let isAdmin = false;
         
         function handleAuthClick() {
             if(isAdmin) { 
@@ -429,7 +391,8 @@
         }
         function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
-        renderAll();
+        // สั่งให้โหลดข้อมูลทันทีที่เปิดเว็บ
+        fetchData();
     </script>
 </body>
 </html>
