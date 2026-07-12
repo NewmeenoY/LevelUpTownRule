@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Rules | LevenUp Town</title>
     
-    <!-- เพิ่มโค้ดบรรทัดนี้เพื่อดึงรูปไปทำไอคอนบนแท็บเบราว์เซอร์ (Favicon) -->
+    <!-- เพิ่ม Favicon (โลโก้บนแท็บเบราว์เซอร์) -->
     <link rel="icon" href="LEVELUPTOWN.png" type="image/png">
+
+    <!-- เรียกใช้ CSS ของ Quill.js (สำหรับเครื่องมือจัดการข้อความ) -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
     <style>
         :root { --bg-color: #f4f4f4; --container-bg: #ffffff; --text-main: #111111; --border-color: #000000; --accent-color: #000000; }
@@ -30,20 +33,27 @@
         /* Rule Display */
         .rule-content { display: none; background: #fff; border: 2px solid #000; padding: 30px; box-shadow: 6px 6px 0px #000; animation: fadeIn 0.3s ease-in; }
         .rule-content ul { padding-left: 20px; font-size: 1.1em; }
-        .rule-content ul li { margin-bottom: 12px; }
+        .rule-content ul li { margin-bottom: 15px; }
+        /* ปรับให้ข้อความจาก Editor แสดงผลพอดีในลิสต์ */
+        .rule-content ul li p { margin: 0; } 
         
         /* Admin Dashboard */
         #admin-view { display: none; background: #fff; border: 3px solid #000; padding: 30px; box-shadow: 8px 8px 0px #000; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
-        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #000; font-size: 1em; }
+        .form-group select { width: 100%; padding: 12px; border: 2px solid #000; font-size: 1em; }
         .btn-action { padding: 12px 20px; cursor: pointer; font-weight: bold; border: 2px solid #000; background: #000; color: #fff; transition: 0.2s; }
         .btn-action:hover { background: #333; }
+        
+        /* Quill Editor Styles Customization */
+        .ql-toolbar.ql-snow { border: 2px solid #000 !important; background: #eee; font-family: inherit; }
+        .ql-container.ql-snow { border: 2px solid #000 !important; border-top: none !important; font-family: inherit; font-size: 1.1em; background: #fff; }
         
         /* Table */
         table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; }
         th, td { border: 2px solid #000; padding: 12px; text-align: left; }
         th { background: #f0f0f0; }
+        td p { margin: 0; } /* ป้องกันตารางพองจากแท็ก p */
         .btn-edit { background: #ff9f43; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; margin-right: 5px; }
         .btn-delete { background: #ff4757; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; }
 
@@ -56,8 +66,8 @@
     <div id="login-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
         <div style="background:#fff; padding:40px; border:4px solid #000; width:350px; box-shadow: 8px 8px 0px rgba(255,255,255,0.2);">
             <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px; text-align:center;">🔒 Admin Login</h2>
-            <div class="form-group"><label>Username</label><input type="text" id="input-user"></div>
-            <div class="form-group"><label>Password</label><input type="password" id="input-pass"></div>
+            <div class="form-group"><label>Username</label><input type="text" id="input-user" style="width:100%; padding:10px; border:2px solid #000;"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="input-pass" style="width:100%; padding:10px; border:2px solid #000;"></div>
             <button class="btn-action" style="width:100%; margin-top:10px;" onclick="verifyLogin()">เข้าสู่ระบบ</button>
             <button style="width: 100%; margin-top:10px; padding:12px; border:2px solid #000; background:#ddd; cursor:pointer; font-weight:bold;" onclick="closeLogin()">ยกเลิก</button>
         </div>
@@ -104,14 +114,17 @@
                 </select>
             </div>
 
-            <!-- ฟอร์มเพิ่ม/แก้ไขกฎในหมวดหมู่นั้นๆ -->
+            <!-- ฟอร์มเพิ่ม/แก้ไขกฎ (อัปเกรดเป็น Rich Text Editor) -->
             <div style="background:#f9f9f9; padding:20px; border:2px dashed #ccc; margin-bottom:20px;">
                 <div class="form-group">
                     <label>ข้อความกฎ <span id="current-cat-label" style="color:gray;"></span></label>
-                    <input type="text" id="new-rule" placeholder="พิมพ์ข้อกฎหมายที่ต้องการเพิ่มหรือแก้ไข...">
+                    
+                    <!-- กล่องสำหรับ Text Editor -->
+                    <div id="editor-container" style="height: 150px;"></div>
+
                 </div>
-                <button id="btn-save" class="btn-action" onclick="saveRule()">+ เพิ่มกฎใหม่</button>
-                <button id="btn-cancel-edit" onclick="cancelEdit()" style="display:none; padding:12px; font-weight:bold; cursor:pointer;">ยกเลิกการแก้ไข</button>
+                <button id="btn-save" class="btn-action" onclick="saveRule()" style="margin-top: 10px;">+ เพิ่มกฎใหม่</button>
+                <button id="btn-cancel-edit" onclick="cancelEdit()" style="display:none; padding:12px; font-weight:bold; cursor:pointer; margin-top: 10px;">ยกเลิกการแก้ไข</button>
             </div>
             
             <!-- ตารางแสดงกฎเฉพาะหมวดที่เลือก -->
@@ -129,11 +142,28 @@
         </div>
     </div>
 
+    <!-- เรียกใช้ Script ของ Quill.js -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
+        // ==========================================
+        // 0. ตั้งค่า Quill Editor (เครื่องมือจัดหน้าข้อความ)
+        // ==========================================
+        var quill = new Quill('#editor-container', {
+            theme: 'snow',
+            placeholder: 'พิมพ์ข้อกฎหมายที่ต้องการเพิ่มหรือแก้ไขที่นี่...',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'], 
+                    [{ 'color': [] }, { 'background': [] }],   
+                    [{ 'align': [] }],                         
+                    ['clean']                                  
+                ]
+            }
+        });
+
         // ==========================================
         // 1. ระบบจัดการข้อมูล (Data & LocalStorage)
         // ==========================================
-        
         const defaultRules = [
             { cat: 'General', text: 'ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม' },
             { cat: 'Safezone', text: 'ห้ามก่ออาชญากรรม ปล้น ขโมยรถ หรือทำร้ายร่างกายกันในพื้นที่ปลอดภัย' },
@@ -168,6 +198,7 @@
                     hasRules = true;
                     tbody.innerHTML += `
                     <tr>
+                        <!-- โชว์ข้อความที่จัดรูปแบบแล้วในตาราง -->
                         <td>${r.text}</td>
                         <td style="text-align:center;">
                             <button class="btn-edit" onclick="startEdit(${originalIndex})">แก้ไข</button>
@@ -184,20 +215,23 @@
 
         function saveRule() {
             const cat = document.getElementById('admin-cat-filter').value; 
-            const text = document.getElementById('new-rule').value;
             
-            if(!text.trim()) return alert('กรุณากรอกข้อความกฎหมายก่อนกดบันทึก!');
+            // ดึงข้อความดิบ (เช็คว่าพิมพ์หรือยัง) และ ข้อความแบบ HTML (เซฟลงระบบ)
+            const plainText = quill.getText().trim();
+            const textHTML = quill.root.innerHTML;
+            
+            if(plainText.length === 0) return alert('กรุณากรอกข้อความกฎหมายก่อนกดบันทึก!');
 
             if(editIndex > -1) {
-                rules[editIndex] = { cat, text };
+                rules[editIndex] = { cat, text: textHTML };
                 alert('อัปเดตข้อมูลสำเร็จ!');
                 cancelEdit(); 
             } else {
-                rules.push({ cat, text });
+                rules.push({ cat, text: textHTML });
             }
             
             localStorage.setItem('levenUpRules', JSON.stringify(rules));
-            document.getElementById('new-rule').value = '';
+            quill.setContents([]); // ล้างกล่องข้อความ
             renderAdmin();
         }
 
@@ -207,7 +241,9 @@
             
             document.getElementById('admin-cat-filter').value = r.cat;
             document.getElementById('current-cat-label').innerText = `(แก้ไขของ: ${getCatName(r.cat)})`;
-            document.getElementById('new-rule').value = r.text;
+            
+            // ดึงข้อความเก่ามาใส่ในกล่อง Editor
+            quill.root.innerHTML = r.text;
             
             document.getElementById('btn-save').innerText = '💾 บันทึกการแก้ไข';
             document.getElementById('btn-save').style.background = '#ff9f43';
@@ -218,7 +254,7 @@
 
         function cancelEdit() {
             editIndex = -1;
-            document.getElementById('new-rule').value = '';
+            quill.setContents([]); // ล้างกล่องข้อความ
             document.getElementById('btn-save').innerText = '+ เพิ่มกฎใหม่';
             document.getElementById('btn-save').style.background = '#000';
             document.getElementById('btn-cancel-edit').style.display = 'none';
@@ -265,8 +301,8 @@
         const adminAccounts = { 
             "Newmeenoy": "New", 
             "MJDEXN": "MJ", 
-            "YUYU": "Yu" ,
-            "WH": "7731" 
+            "YUYU": "Yu",
+            "WH": "7731"
         };
         
         let isAdmin = false;
