@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Rules | LevenUp Town</title>
     
-    <!-- เพิ่ม Favicon (โลโก้บนแท็บเบราว์เซอร์) -->
     <link rel="icon" href="LEVELUPTOWN.png" type="image/png">
-
-    <!-- เรียกใช้ CSS ของ Quill.js (สำหรับเครื่องมือจัดการข้อความ) -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
     <style>
@@ -34,26 +31,26 @@
         .rule-content { display: none; background: #fff; border: 2px solid #000; padding: 30px; box-shadow: 6px 6px 0px #000; animation: fadeIn 0.3s ease-in; }
         .rule-content ul { padding-left: 20px; font-size: 1.1em; }
         .rule-content ul li { margin-bottom: 15px; }
-        /* ปรับให้ข้อความจาก Editor แสดงผลพอดีในลิสต์ */
         .rule-content ul li p { margin: 0; } 
         
         /* Admin Dashboard */
         #admin-view { display: none; background: #fff; border: 3px solid #000; padding: 30px; box-shadow: 8px 8px 0px #000; }
+        .admin-section { background: #f9f9f9; padding: 20px; border: 2px dashed #ccc; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
-        .form-group select { width: 100%; padding: 12px; border: 2px solid #000; font-size: 1em; }
-        .btn-action { padding: 12px 20px; cursor: pointer; font-weight: bold; border: 2px solid #000; background: #000; color: #fff; transition: 0.2s; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #000; font-size: 1em; }
+        .btn-action { padding: 10px 15px; cursor: pointer; font-weight: bold; border: 2px solid #000; background: #000; color: #fff; transition: 0.2s; }
         .btn-action:hover { background: #333; }
         
-        /* Quill Editor Styles Customization */
+        /* Quill */
         .ql-toolbar.ql-snow { border: 2px solid #000 !important; background: #eee; font-family: inherit; }
         .ql-container.ql-snow { border: 2px solid #000 !important; border-top: none !important; font-family: inherit; font-size: 1.1em; background: #fff; }
         
         /* Table */
-        table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; }
-        th, td { border: 2px solid #000; padding: 12px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; }
+        th, td { border: 2px solid #000; padding: 10px; text-align: left; }
         th { background: #f0f0f0; }
-        td p { margin: 0; } /* ป้องกันตารางพองจากแท็ก p */
+        td p { margin: 0; } 
         .btn-edit { background: #ff9f43; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; margin-right: 5px; }
         .btn-delete { background: #ff4757; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; }
 
@@ -62,18 +59,16 @@
 </head>
 <body>
 
-    <!-- Modal Login -->
     <div id="login-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
         <div style="background:#fff; padding:40px; border:4px solid #000; width:350px; box-shadow: 8px 8px 0px rgba(255,255,255,0.2);">
             <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px; text-align:center;">🔒 Admin Login</h2>
-            <div class="form-group"><label>Username</label><input type="text" id="input-user" style="width:100%; padding:10px; border:2px solid #000;"></div>
-            <div class="form-group"><label>Password</label><input type="password" id="input-pass" style="width:100%; padding:10px; border:2px solid #000;"></div>
+            <div class="form-group"><label>Username</label><input type="text" id="input-user"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="input-pass"></div>
             <button class="btn-action" style="width:100%; margin-top:10px;" onclick="verifyLogin()">เข้าสู่ระบบ</button>
             <button style="width: 100%; margin-top:10px; padding:12px; border:2px solid #000; background:#ddd; cursor:pointer; font-weight:bold;" onclick="closeLogin()">ยกเลิก</button>
         </div>
     </div>
 
-    <!-- Nav -->
     <div class="nav-bar"><button id="toggleBtn" onclick="handleAuthClick()">เข้าสู่ระบบ Admin</button></div>
 
     <header>
@@ -82,16 +77,11 @@
     </header>
 
     <div class="container">
-        <!-- 1. เมนูหลัก (หน้าของผู้เล่น) -->
-        <div id="main-menu" class="topic-grid">
-            <div class="topic-card" onclick="openRule('General')"><h3>📜 กฎทั่วไป</h3></div>
-            <div class="topic-card" onclick="openRule('Safezone')"><h3>🛡️ พื้นที่ปลอดภัย</h3></div>
-            <div class="topic-card" onclick="openRule('Police')"><h3>🚓 กฎตำรวจ</h3></div>
-            <div class="topic-card" onclick="openRule('Medic')"><h3>🚑 กฎหมอ</h3></div>
-            <div class="topic-card" onclick="openRule('Council')"><h3>🏛️ กฎสภา</h3></div>
-        </div>
+        
+        <!-- 1. เมนูหลัก (สร้างอัตโนมัติจากข้อมูล) -->
+        <div id="main-menu" class="topic-grid"></div>
 
-        <!-- 2. หน้าแสดงเนื้อหากฎ (หน้าของผู้เล่น) -->
+        <!-- 2. หน้าแสดงเนื้อหากฎ -->
         <div id="rule-display" class="rule-content">
             <button class="btn-action" style="margin-bottom:20px;" onclick="goBack()">◀ ย้อนกลับหน้าแรก</button>
             <h2 id="rule-title" style="border-bottom:2px solid #000; padding-bottom:10px; margin-top:0;"></h2>
@@ -100,193 +90,256 @@
 
         <!-- 3. แผงควบคุมแอดมิน -->
         <div id="admin-view" class="admin-panel">
-            <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px;">⚙️ แผงควบคุมแอดมิน (Admin Dashboard)</h2>
+            <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px;">⚙️ แผงควบคุมแอดมิน</h2>
             
-            <!-- ตัวเลือกหมวดหมู่ที่ต้องการจัดการ -->
-            <div style="background:#eee; padding:15px; border:2px solid #000; margin-bottom:20px;">
-                <label style="font-weight:bold; display:block; margin-bottom:8px; font-size:1.1em;">📂 เลือกหมวดหมู่ที่ต้องการจัดการ:</label>
-                <select id="admin-cat-filter" onchange="renderAdmin()" style="width:100%; padding:10px; border:2px solid #000; font-weight:bold; font-size:1em;">
-                    <option value="General">📜 กฎทั่วไป</option>
-                    <option value="Safezone">🛡️ พื้นที่ปลอดภัย</option>
-                    <option value="Police">🚓 กฎตำรวจ</option>
-                    <option value="Medic">🚑 กฎหมอ</option>
-                    <option value="Council">🏛️ กฎสภา</option>
-                </select>
+            <!-- ส่วนที่ 1: จัดการหมวดหมู่ -->
+            <div class="admin-section" style="border-color:#3498db;">
+                <h3 style="margin-top:0; color:#2980b9;">📁 จัดการหมวดหมู่กฎหมาย</h3>
+                <div class="form-group">
+                    <label>ชื่อหมวดหมู่ (ใส่ไอคอนอิโมจิได้)</label>
+                    <input type="text" id="new-cat-name" placeholder="เช่น 🚗 กฎการขับรถ...">
+                </div>
+                <button id="btn-save-cat" class="btn-action" onclick="saveCategory()">+ เพิ่มหมวดหมู่ใหม่</button>
+                <button id="btn-cancel-cat" onclick="cancelCatEdit()" style="display:none; padding:10px 15px; font-weight:bold; cursor:pointer; background:#ddd; border:2px solid #000;">ยกเลิก</button>
+                
+                <table>
+                    <thead><tr><th style="width:75%;">รายชื่อหมวดหมู่</th><th style="width:25%; text-align:center;">จัดการ</th></tr></thead>
+                    <tbody id="admin-cat-list"></tbody>
+                </table>
             </div>
 
-            <!-- ฟอร์มเพิ่ม/แก้ไขกฎ (อัปเกรดเป็น Rich Text Editor) -->
-            <div style="background:#f9f9f9; padding:20px; border:2px dashed #ccc; margin-bottom:20px;">
+            <!-- ส่วนที่ 2: จัดการกฎหมายในแต่ละหมวด -->
+            <div class="admin-section" style="border-color:#e67e22;">
+                <h3 style="margin-top:0; color:#d35400;">📝 จัดการข้อกฎหมาย</h3>
+                
+                <div class="form-group">
+                    <label>📂 เลือกหมวดหมู่ที่ต้องการจัดการ:</label>
+                    <select id="admin-cat-filter" onchange="renderAdminRules()"></select>
+                </div>
+
                 <div class="form-group">
                     <label>ข้อความกฎ <span id="current-cat-label" style="color:gray;"></span></label>
-                    
-                    <!-- กล่องสำหรับ Text Editor -->
                     <div id="editor-container" style="height: 150px;"></div>
-
                 </div>
-                <button id="btn-save" class="btn-action" onclick="saveRule()" style="margin-top: 10px;">+ เพิ่มกฎใหม่</button>
-                <button id="btn-cancel-edit" onclick="cancelEdit()" style="display:none; padding:12px; font-weight:bold; cursor:pointer; margin-top: 10px;">ยกเลิกการแก้ไข</button>
+                <button id="btn-save-rule" class="btn-action" onclick="saveRule()">+ เพิ่มกฎลงในหมวดนี้</button>
+                <button id="btn-cancel-rule" onclick="cancelRuleEdit()" style="display:none; padding:10px 15px; font-weight:bold; cursor:pointer; background:#ddd; border:2px solid #000;">ยกเลิกแก้ไข</button>
+                
+                <table>
+                    <thead><tr><th style="width:75%;">เนื้อหากฎ</th><th style="width:25%; text-align:center;">จัดการ</th></tr></thead>
+                    <tbody id="admin-rule-list"></tbody>
+                </table>
             </div>
-            
-            <!-- ตารางแสดงกฎเฉพาะหมวดที่เลือก -->
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:75%;">เนื้อหากฎ</th>
-                        <th style="width:25%; text-align:center;">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-rule-list">
-                    <!-- ข้อมูลจะถูกดึงมาแสดงที่นี่ -->
-                </tbody>
-            </table>
+
         </div>
     </div>
 
-    <!-- เรียกใช้ Script ของ Quill.js -->
+    <!-- Quill.js -->
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
-        // ==========================================
-        // 0. ตั้งค่า Quill Editor (เครื่องมือจัดหน้าข้อความ)
-        // ==========================================
         var quill = new Quill('#editor-container', {
             theme: 'snow',
-            placeholder: 'พิมพ์ข้อกฎหมายที่ต้องการเพิ่มหรือแก้ไขที่นี่...',
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline', 'strike'], 
-                    [{ 'color': [] }, { 'background': [] }],   
-                    [{ 'align': [] }],                         
-                    ['clean']                                  
-                ]
-            }
+            placeholder: 'พิมพ์ข้อกฎหมาย จัดสี ทำตัวหนาได้ที่นี่...',
+            modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'align': [] }], ['clean'] ] }
         });
 
         // ==========================================
-        // 1. ระบบจัดการข้อมูล (Data & LocalStorage)
+        // 1. ระบบข้อมูล (Data & LocalStorage)
         // ==========================================
+        const defaultCats = [
+            { id: 'cat_1', name: '📜 กฎทั่วไป' },
+            { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' },
+            { id: 'cat_3', name: '🚓 กฎตำรวจ' },
+            { id: 'cat_4', name: '🚑 กฎหมอ' },
+            { id: 'cat_5', name: '🏛️ กฎสภา' }
+        ];
+        
         const defaultRules = [
-            { cat: 'General', text: 'ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม' },
-            { cat: 'Safezone', text: 'ห้ามก่ออาชญากรรม ปล้น ขโมยรถ หรือทำร้ายร่างกายกันในพื้นที่ปลอดภัย' },
-            { cat: 'Police', text: 'ตำรวจห้ามใช้อาวุธปืนจริงในการระงับเหตุ หากคนร้ายยังไม่ใช้อาวุธปืน' },
-            { cat: 'Medic', text: 'ห้ามหมอชุบชีวิตผู้เล่นในพื้นที่ที่กำลังมีการปะทะกัน' },
-            { cat: 'Council', text: 'สมาชิกสภาต้องวางตัวเป็นกลางในทุกสถานการณ์' }
+            { catId: 'cat_1', text: '<p>ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม</p>' },
+            { catId: 'cat_2', text: '<p>ห้ามก่ออาชญากรรมในพื้นที่ปลอดภัย</p>' }
         ];
 
+        let categories = JSON.parse(localStorage.getItem('levenUpCats')) || defaultCats;
         let rules = JSON.parse(localStorage.getItem('levenUpRules')) || defaultRules;
-        let editIndex = -1; 
+        
+        let editCatIndex = -1;
+        let editRuleIndex = -1;
 
-        function getCatName(cat) {
-            const names = { 'General': '📜 กฎทั่วไป', 'Safezone': '🛡️ พื้นที่ปลอดภัย', 'Police': '🚓 กฎตำรวจ', 'Medic': '🚑 กฎหมอ', 'Council': '🏛️ กฎสภา' };
-            return names[cat] || cat;
+        function saveData() {
+            localStorage.setItem('levenUpCats', JSON.stringify(categories));
+            localStorage.setItem('levenUpRules', JSON.stringify(rules));
+            renderAll();
+        }
+
+        function getCatName(id) {
+            const cat = categories.find(c => c.id === id);
+            return cat ? cat.name : 'หมวดหมู่ถูกลบ';
         }
 
         // ==========================================
-        // 2. ฟังก์ชันแผงควบคุม (Admin)
+        // 2. ฟังก์ชันจัดการหมวดหมู่ (Categories)
         // ==========================================
-        
-        function renderAdmin() {
-            const selectedCat = document.getElementById('admin-cat-filter').value;
-            document.getElementById('current-cat-label').innerText = `(เพิ่มลงใน: ${getCatName(selectedCat)})`;
+        function saveCategory() {
+            const name = document.getElementById('new-cat-name').value.trim();
+            if(!name) return alert('กรุณาใส่ชื่อหมวดหมู่!');
 
-            const tbody = document.getElementById('admin-rule-list');
-            tbody.innerHTML = ''; 
-            
-            let hasRules = false;
+            if(editCatIndex > -1) {
+                categories[editCatIndex].name = name;
+                alert('แก้ไขชื่อหมวดหมู่สำเร็จ!');
+                cancelCatEdit();
+            } else {
+                const newId = 'cat_' + Date.now();
+                categories.push({ id: newId, name: name });
+            }
+            document.getElementById('new-cat-name').value = '';
+            saveData();
+        }
 
-            rules.forEach((r, originalIndex) => {
-                if(r.cat === selectedCat) {
-                    hasRules = true;
-                    tbody.innerHTML += `
-                    <tr>
-                        <!-- โชว์ข้อความที่จัดรูปแบบแล้วในตาราง -->
-                        <td>${r.text}</td>
-                        <td style="text-align:center;">
-                            <button class="btn-edit" onclick="startEdit(${originalIndex})">แก้ไข</button>
-                            <button class="btn-delete" onclick="deleteRule(${originalIndex})">ลบ</button>
-                        </td>
-                    </tr>`;
-                }
-            });
+        function editCategory(index) {
+            editCatIndex = index;
+            document.getElementById('new-cat-name').value = categories[index].name;
+            document.getElementById('btn-save-cat').innerText = '💾 บันทึกชื่อหมวดหมู่';
+            document.getElementById('btn-save-cat').style.background = '#3498db';
+            document.getElementById('btn-cancel-cat').style.display = 'inline-block';
+        }
 
-            if(!hasRules) {
-                tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray; padding:20px;">ยังไม่มีข้อมูลกฎหมายในหมวดหมู่นี้</td></tr>`;
+        function cancelCatEdit() {
+            editCatIndex = -1;
+            document.getElementById('new-cat-name').value = '';
+            document.getElementById('btn-save-cat').innerText = '+ เพิ่มหมวดหมู่ใหม่';
+            document.getElementById('btn-save-cat').style.background = '#000';
+            document.getElementById('btn-cancel-cat').style.display = 'none';
+        }
+
+        function deleteCategory(index) {
+            if(confirm('⚠️ คำเตือน: หากลบหมวดหมู่นี้ กฎหมายทั้งหมดที่อยู่ในหมวดนี้จะหายไปด้วย!\nแน่ใจหรือไม่ที่จะลบ?')) {
+                const catId = categories[index].id;
+                rules = rules.filter(r => r.catId !== catId); // ลบกฎที่เชื่อมกับหมวดนี้ทิ้ง
+                categories.splice(index, 1);
+                
+                if(editCatIndex === index) cancelCatEdit();
+                saveData();
             }
         }
 
+        // ==========================================
+        // 3. ฟังก์ชันจัดการกฎ (Rules)
+        // ==========================================
         function saveRule() {
-            const cat = document.getElementById('admin-cat-filter').value; 
-            
-            // ดึงข้อความดิบ (เช็คว่าพิมพ์หรือยัง) และ ข้อความแบบ HTML (เซฟลงระบบ)
+            const catId = document.getElementById('admin-cat-filter').value; 
+            if(!catId) return alert('กรุณาสร้างหมวดหมู่ก่อนเพิ่มกฎ!');
+
             const plainText = quill.getText().trim();
             const textHTML = quill.root.innerHTML;
-            
-            if(plainText.length === 0) return alert('กรุณากรอกข้อความกฎหมายก่อนกดบันทึก!');
+            if(plainText.length === 0) return alert('กรุณากรอกข้อความกฎหมาย!');
 
-            if(editIndex > -1) {
-                rules[editIndex] = { cat, text: textHTML };
-                alert('อัปเดตข้อมูลสำเร็จ!');
-                cancelEdit(); 
+            if(editRuleIndex > -1) {
+                rules[editRuleIndex] = { catId, text: textHTML };
+                alert('อัปเดตกฎสำเร็จ!');
+                cancelRuleEdit(); 
             } else {
-                rules.push({ cat, text: textHTML });
+                rules.push({ catId, text: textHTML });
             }
-            
-            localStorage.setItem('levenUpRules', JSON.stringify(rules));
-            quill.setContents([]); // ล้างกล่องข้อความ
-            renderAdmin();
+            quill.setContents([]); 
+            saveData();
         }
 
-        function startEdit(index) {
-            editIndex = index;
+        function editRule(index) {
+            editRuleIndex = index;
             const r = rules[index];
             
-            document.getElementById('admin-cat-filter').value = r.cat;
-            document.getElementById('current-cat-label').innerText = `(แก้ไขของ: ${getCatName(r.cat)})`;
-            
-            // ดึงข้อความเก่ามาใส่ในกล่อง Editor
+            document.getElementById('admin-cat-filter').value = r.catId;
+            document.getElementById('current-cat-label').innerText = `(แก้ไขของ: ${getCatName(r.catId)})`;
             quill.root.innerHTML = r.text;
             
-            document.getElementById('btn-save').innerText = '💾 บันทึกการแก้ไข';
-            document.getElementById('btn-save').style.background = '#ff9f43';
-            document.getElementById('btn-cancel-edit').style.display = 'inline-block';
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('btn-save-rule').innerText = '💾 บันทึกการแก้ไขกฎ';
+            document.getElementById('btn-save-rule').style.background = '#e67e22';
+            document.getElementById('btn-cancel-rule').style.display = 'inline-block';
         }
 
-        function cancelEdit() {
-            editIndex = -1;
-            quill.setContents([]); // ล้างกล่องข้อความ
-            document.getElementById('btn-save').innerText = '+ เพิ่มกฎใหม่';
-            document.getElementById('btn-save').style.background = '#000';
-            document.getElementById('btn-cancel-edit').style.display = 'none';
+        function cancelRuleEdit() {
+            editRuleIndex = -1;
+            quill.setContents([]); 
+            document.getElementById('btn-save-rule').innerText = '+ เพิ่มกฎลงในหมวดนี้';
+            document.getElementById('btn-save-rule').style.background = '#000';
+            document.getElementById('btn-cancel-rule').style.display = 'none';
         }
 
         function deleteRule(index) {
-            if(confirm('คุณแน่ใจหรือไม่ว่าต้องการลบกฎข้อนี้?')) {
+            if(confirm('ลบกฎข้อนี้?')) {
                 rules.splice(index, 1);
-                localStorage.setItem('levenUpRules', JSON.stringify(rules));
-                if(editIndex === index) cancelEdit(); 
-                renderAdmin();
+                if(editRuleIndex === index) cancelRuleEdit(); 
+                saveData();
             }
         }
 
         // ==========================================
-        // 3. ฟังก์ชันหน้าแสดงผลสำหรับผู้เล่น
+        // 4. ฟังก์ชัน Render หน้าจอ
         // ==========================================
-        function openRule(cat) {
+        function renderAll() {
+            // 4.1 อัปเดตหน้าเมนูหลัก (ของผู้เล่น)
+            const menu = document.getElementById('main-menu');
+            menu.innerHTML = '';
+            categories.forEach(c => {
+                menu.innerHTML += `<div class="topic-card" onclick="openRule('${c.id}')"><h3>${c.name}</h3></div>`;
+            });
+
+            // 4.2 อัปเดตตารางจัดการหมวดหมู่ (แอดมิน)
+            const catTbody = document.getElementById('admin-cat-list');
+            catTbody.innerHTML = '';
+            if(categories.length === 0) {
+                catTbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray;">ยังไม่มีหมวดหมู่</td></tr>`;
+            } else {
+                categories.forEach((c, index) => {
+                    catTbody.innerHTML += `<tr><td><strong>${c.name}</strong></td><td style="text-align:center;"><button class="btn-edit" onclick="editCategory(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteCategory(${index})">ลบ</button></td></tr>`;
+                });
+            }
+
+            // 4.3 อัปเดต Dropdown เลือกหมวดหมู่ (แอดมิน)
+            const filter = document.getElementById('admin-cat-filter');
+            const currentSelected = filter.value;
+            filter.innerHTML = '';
+            categories.forEach(c => {
+                filter.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+            if(categories.find(c => c.id === currentSelected)) {
+                filter.value = currentSelected; // จำค่าที่เลือกไว้ล่าสุด
+            }
+            
+            renderAdminRules(); // อัปเดตตารางกฎด้านล่างด้วย
+        }
+
+        function renderAdminRules() {
+            const selectedCatId = document.getElementById('admin-cat-filter').value;
+            document.getElementById('current-cat-label').innerText = selectedCatId ? `(เพิ่มลงใน: ${getCatName(selectedCatId)})` : '';
+
+            const tbody = document.getElementById('admin-rule-list');
+            tbody.innerHTML = ''; 
+            let hasRules = false;
+
+            rules.forEach((r, index) => {
+                if(r.catId === selectedCatId) {
+                    hasRules = true;
+                    tbody.innerHTML += `<tr><td>${r.text}</td><td style="text-align:center;"><button class="btn-edit" onclick="editRule(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteRule(${index})">ลบ</button></td></tr>`;
+                }
+            });
+
+            if(!hasRules) tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray;">ไม่มีกฎหมายในหมวดนี้</td></tr>`;
+        }
+
+        // ==========================================
+        // 5. ระบบดูข้อมูลผู้เล่น & Login
+        // ==========================================
+        function openRule(catId) {
             document.getElementById('main-menu').style.display = 'none';
             document.getElementById('rule-display').style.display = 'block';
-            
-            document.getElementById('rule-title').innerText = getCatName(cat);
+            document.getElementById('rule-title').innerText = getCatName(catId);
             
             const list = document.getElementById('rule-list');
             list.innerHTML = '';
-            const filteredRules = rules.filter(r => r.cat === cat);
+            const filteredRules = rules.filter(r => r.catId === catId);
             
-            if(filteredRules.length === 0) {
-                list.innerHTML = `<li style="color:gray; list-style:none;">ยังไม่มีข้อบังคับในหมวดหมู่นี้</li>`;
-            } else {
-                filteredRules.forEach(r => list.innerHTML += `<li>${r.text}</li>`);
-            }
+            if(filteredRules.length === 0) list.innerHTML = `<li style="color:gray; list-style:none;">ยังไม่มีข้อบังคับในหมวดหมู่นี้</li>`;
+            else filteredRules.forEach(r => list.innerHTML += `<li>${r.text}</li>`);
         }
 
         function goBack() { 
@@ -294,17 +347,7 @@
             document.getElementById('main-menu').style.display = 'grid';
         }
 
-        // ==========================================
-        // 4. ระบบ Login
-        // ==========================================
-        
-        const adminAccounts = { 
-            "Newmeenoy": "New", 
-            "MJDEXN": "MJ", 
-            "YUYU": "Yu",
-            "WH": "7731"
-        };
-        
+        const adminAccounts = { "Newmeenoy": "New", "MJDEXN": "MJ", "YUYU": "Yu", "WH": "7731" };
         let isAdmin = false;
         
         function handleAuthClick() {
@@ -314,18 +357,15 @@
                 document.getElementById('rule-display').style.display = 'none'; 
                 document.getElementById('main-menu').style.display = 'grid'; 
                 document.getElementById('toggleBtn').innerText = 'เข้าสู่ระบบ Admin'; 
-                cancelEdit(); 
+                cancelCatEdit(); cancelRuleEdit();
             } else { 
                 document.getElementById('login-modal').style.display = 'flex'; 
-                document.getElementById('input-user').value = '';
-                document.getElementById('input-pass').value = '';
+                document.getElementById('input-user').value = ''; document.getElementById('input-pass').value = '';
             }
         }
         
         function verifyLogin() {
-            const u = document.getElementById('input-user').value;
-            const p = document.getElementById('input-pass').value;
-            
+            const u = document.getElementById('input-user').value; const p = document.getElementById('input-pass').value;
             if(adminAccounts.hasOwnProperty(u) && adminAccounts[u] === p) {
                 isAdmin = true;
                 document.getElementById('login-modal').style.display = 'none';
@@ -333,17 +373,13 @@
                 document.getElementById('rule-display').style.display = 'none';
                 document.getElementById('admin-view').style.display = 'block';
                 document.getElementById('toggleBtn').innerText = 'ออกจากระบบ Admin';
-                
-                document.getElementById('admin-cat-filter').value = 'General';
-                renderAdmin(); 
-            } else { 
-                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!'); 
-            }
+                renderAll(); 
+            } else { alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!'); }
         }
-        
         function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
-        renderAdmin();
+        // Start
+        renderAll();
     </script>
 </body>
 </html>
