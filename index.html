@@ -78,7 +78,7 @@
 
     <div class="container">
         
-        <!-- 1. เมนูหลัก (สร้างอัตโนมัติจากข้อมูล) -->
+        <!-- 1. เมนูหลัก -->
         <div id="main-menu" class="topic-grid"></div>
 
         <!-- 2. หน้าแสดงเนื้อหากฎ -->
@@ -143,24 +143,78 @@
         });
 
         // ==========================================
-        // 1. ระบบข้อมูล (Data & LocalStorage)
+        // 1. ระบบข้อมูล และ การกู้คืนข้อมูลอัตโนมัติ
         // ==========================================
         const defaultCats = [
             { id: 'cat_1', name: '📜 กฎทั่วไป' },
             { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' },
             { id: 'cat_3', name: '🚓 กฎตำรวจ' },
             { id: 'cat_4', name: '🚑 กฎหมอ' },
-            { id: 'cat_5', name: '🏛️ กฎสภา' }
-        ];
-        
-        const defaultRules = [
-            { catId: 'cat_1', text: '<p>ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม</p>' },
-            { catId: 'cat_2', text: '<p>ห้ามก่ออาชญากรรมในพื้นที่ปลอดภัย</p>' }
+            { id: 'cat_5', name: '🏛️ กฎสภา' },
+            { id: 'cat_6', name: '🚨 หน่วยงานรัฐ' }
         ];
 
         let categories = JSON.parse(localStorage.getItem('levenUpCats')) || defaultCats;
-        let rules = JSON.parse(localStorage.getItem('levenUpRules')) || defaultRules;
+        let rules = JSON.parse(localStorage.getItem('levenUpRules')) || [];
         
+        // สคริปต์กู้คืนข้อมูลที่หายไป (Auto-Recovery)
+        function recoverOldData() {
+            let hasRecovered = false;
+
+            // 1. กู้จากเวอร์ชันแรกสุด (serverRules)
+            let oldServerRules = JSON.parse(localStorage.getItem('serverRules'));
+            if (oldServerRules && oldServerRules.length > 0) {
+                oldServerRules.forEach(r => {
+                    let cid = 'cat_1';
+                    if(r.cat === 'Safezone') cid = 'cat_2';
+                    if(r.cat === 'Government') cid = 'cat_6';
+                    
+                    if(!rules.find(x => x.text === r.text || x.text === `<p>${r.text}</p>`)) {
+                        rules.push({ catId: cid, text: `<p>${r.text}</p>` });
+                        hasRecovered = true;
+                    }
+                });
+                localStorage.removeItem('serverRules'); // ลบทิ้งเมื่อกู้เสร็จ
+            }
+
+            // 2. กู้จากเวอร์ชันที่ 2 (ข้อมูลแบบเก่าที่ใช้ cat แทน catId)
+            let newRulesArray = [];
+            rules.forEach(r => {
+                if (r.catId) {
+                    newRulesArray.push(r);
+                } else if (r.cat) {
+                    let cid = 'cat_1';
+                    if(r.cat === 'Safezone') cid = 'cat_2';
+                    if(r.cat === 'Police') cid = 'cat_3';
+                    if(r.cat === 'Medic') cid = 'cat_4';
+                    if(r.cat === 'Council') cid = 'cat_5';
+                    if(r.cat === 'Government') cid = 'cat_6';
+                    
+                    // ห่อแท็ก p ให้เข้ากับระบบ Text Editor
+                    let formattedText = r.text.includes('<p>') ? r.text : `<p>${r.text}</p>`;
+                    newRulesArray.push({ catId: cid, text: formattedText });
+                    hasRecovered = true;
+                }
+            });
+            rules = newRulesArray;
+
+            // ถ้าไม่มีข้อมูลเลย ให้ใส่ข้อมูลตั้งต้น
+            if(rules.length === 0) {
+                rules = [
+                    { catId: 'cat_1', text: '<p>ห้ามใช้โปรแกรมช่วยเล่น บอท หรือการดัดแปลงไฟล์เกม</p>' },
+                    { catId: 'cat_2', text: '<p>ห้ามก่ออาชญากรรมในพื้นที่ปลอดภัย</p>' }
+                ];
+                hasRecovered = true;
+            }
+
+            if (hasRecovered) {
+                localStorage.setItem('levenUpRules', JSON.stringify(rules));
+            }
+        }
+        
+        // รันคำสั่งกู้คืนทันทีเมื่อโหลดเว็บ
+        recoverOldData();
+
         let editCatIndex = -1;
         let editRuleIndex = -1;
 
@@ -213,7 +267,7 @@
         function deleteCategory(index) {
             if(confirm('⚠️ คำเตือน: หากลบหมวดหมู่นี้ กฎหมายทั้งหมดที่อยู่ในหมวดนี้จะหายไปด้วย!\nแน่ใจหรือไม่ที่จะลบ?')) {
                 const catId = categories[index].id;
-                rules = rules.filter(r => r.catId !== catId); // ลบกฎที่เชื่อมกับหมวดนี้ทิ้ง
+                rules = rules.filter(r => r.catId !== catId); 
                 categories.splice(index, 1);
                 
                 if(editCatIndex === index) cancelCatEdit();
@@ -276,14 +330,12 @@
         // 4. ฟังก์ชัน Render หน้าจอ
         // ==========================================
         function renderAll() {
-            // 4.1 อัปเดตหน้าเมนูหลัก (ของผู้เล่น)
             const menu = document.getElementById('main-menu');
             menu.innerHTML = '';
             categories.forEach(c => {
                 menu.innerHTML += `<div class="topic-card" onclick="openRule('${c.id}')"><h3>${c.name}</h3></div>`;
             });
 
-            // 4.2 อัปเดตตารางจัดการหมวดหมู่ (แอดมิน)
             const catTbody = document.getElementById('admin-cat-list');
             catTbody.innerHTML = '';
             if(categories.length === 0) {
@@ -294,7 +346,6 @@
                 });
             }
 
-            // 4.3 อัปเดต Dropdown เลือกหมวดหมู่ (แอดมิน)
             const filter = document.getElementById('admin-cat-filter');
             const currentSelected = filter.value;
             filter.innerHTML = '';
@@ -302,10 +353,10 @@
                 filter.innerHTML += `<option value="${c.id}">${c.name}</option>`;
             });
             if(categories.find(c => c.id === currentSelected)) {
-                filter.value = currentSelected; // จำค่าที่เลือกไว้ล่าสุด
+                filter.value = currentSelected; 
             }
             
-            renderAdminRules(); // อัปเดตตารางกฎด้านล่างด้วย
+            renderAdminRules(); 
         }
 
         function renderAdminRules() {
@@ -378,7 +429,6 @@
         }
         function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
-        // Start
         renderAll();
     </script>
 </body>
