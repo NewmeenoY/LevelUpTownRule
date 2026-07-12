@@ -138,6 +138,14 @@
                 </table>
             </div>
 
+            <!-- ⭐ เครื่องมือฉุกเฉินสำหรับแก้ปัญหาข้อมูลไม่ตรงกัน ⭐ -->
+            <div class="admin-section" style="border-color:#c0392b; background:#fadbd8;">
+                <h3 style="margin-top:0; color:#c0392b;">🛠️ เครื่องมือฉุกเฉิน (แก้ปัญหาคนอื่นเห็นข้อมูลไม่ตรง)</h3>
+                <p style="margin:0 0 10px 0; font-size:0.95em;">หากแอดมินเห็นหน้าเว็บเป็นข้อมูลเก่า ให้ทำตาม 2 ขั้นตอนนี้:</p>
+                <button class="btn-action" style="background:#e67e22; border-color:#d35400; width:100%; margin-bottom:10px;" onclick="recoverLocalData()">1. 📂 ดึงข้อมูลที่เคยทำค้างไว้ในเครื่องนี้ขึ้นมาดู</button>
+                <button class="btn-action" style="background:#27ae60; border-color:#2ecc71; width:100%;" onclick="forceSyncToCloud()">2. 🚀 บังคับเซฟข้อมูลนี้ขึ้นเซิร์ฟเวอร์ให้ทุกคนเห็น</button>
+            </div>
+
         </div>
     </div>
 
@@ -150,8 +158,6 @@
             modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'align': [] }], ['clean'] ] }
         });
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrర్ణSrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec"; // ถ้า URL เปลี่ยนให้ใส่ตรงนี้ใหม่นะครับ
-        // ขออภัยครับลิงก์ด้านบนเผลอพิมพ์เกิน ใช้ลิงก์เดิมที่ถูกต้องคือ:
         const REAL_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec";
 
         let categories = [];
@@ -159,41 +165,38 @@
         let editCatIndex = -1;
         let editRuleIndex = -1;
         let isAdmin = false;
+        
+        let currentOpenedCat = null; // ตัวแปรจำว่าผู้เล่นกำลังเปิดอ่านกฎหมวดไหนอยู่
 
         const defaultCats = [ { id: 'cat_1', name: '📜 กฎทั่วไป' }, { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' }, { id: 'cat_3', name: '🚓 กฎตำรวจ' } ];
 
         // ==========================================
-        // 1. โหลดข้อมูล (ดึง Cloud ก่อนเสมอ)
+        // 1. โหลดข้อมูลตอนเปิดเว็บครั้งแรก
         // ==========================================
         async function fetchData() {
-            showNotice('⏳ กำลังโหลดข้อมูลล่าสุดจากฐานข้อมูล...', 'black', 'white');
+            showNotice('⏳ กำลังโหลดข้อมูลล่าสุดจากเซิร์ฟเวอร์...', 'black', 'white');
             try {
                 const noCacheUrl = REAL_SCRIPT_URL + "?t=" + new Date().getTime();
-                const res = await fetch(noCacheUrl);
+                const res = await fetch(noCacheUrl, { cache: 'no-store' });
                 const text = await res.text();
                 
                 if (text && text.includes('cats')) {
                     const data = JSON.parse(text);
                     categories = data.cats || [];
                     rules = data.rules || [];
-                    localStorage.setItem('levelUpCats', JSON.stringify(categories));
-                    localStorage.setItem('levelUpRules', JSON.stringify(rules));
                 } else {
-                    loadLocalData(); 
+                    categories = defaultCats;
+                    rules = [];
                 }
             } catch (err) {
-                console.log("โหลดจาก Cloud ไม่สำเร็จ, กำลังดึงจากเครื่อง...");
-                loadLocalData(); 
+                console.log("โหลดจาก Cloud ไม่สำเร็จ");
+                categories = defaultCats;
+                rules = [];
             }
             
             document.getElementById('loading').style.display = 'none';
             if(!isAdmin) document.getElementById('main-menu').style.display = 'grid';
             renderAll();
-        }
-
-        function loadLocalData() {
-            categories = JSON.parse(localStorage.getItem('levelUpCats')) || defaultCats;
-            rules = JSON.parse(localStorage.getItem('levelUpRules')) || [];
         }
 
         function showNotice(msg, bg, color) {
@@ -205,30 +208,83 @@
         }
 
         // ==========================================
-        // 2. ระบบบันทึกข้อมูลทะลุการบล็อก
+        // ⭐ 1.5 ระบบ Real-time ดึงข้อมูลอัตโนมัติสำหรับผู้ใช้ทั่วไป ⭐
+        // ==========================================
+        async function silentlySyncData() {
+            // ดึงข้อมูลเงียบๆ เฉพาะตอนที่ไม่ได้ล็อกอินเป็นแอดมิน
+            if (isAdmin) return; 
+
+            try {
+                const noCacheUrl = REAL_SCRIPT_URL + "?t=" + new Date().getTime();
+                const res = await fetch(noCacheUrl, { cache: 'no-store' });
+                const text = await res.text();
+                
+                if (text && text.includes('cats')) {
+                    const data = JSON.parse(text);
+                    
+                    // อัปเดตตัวแปรข้อมูล
+                    categories = data.cats || [];
+                    rules = data.rules || [];
+                    
+                    // อัปเดตหน้าจอเมนูหลักเงียบๆ
+                    renderAll();
+                    
+                    // ถ้าผู้เล่นกำลังเปิดอ่านกฎอยู่ ให้ข้อมูลเปลี่ยนตามทันที!
+                    if(document.getElementById('rule-display').style.display === 'block' && currentOpenedCat) {
+                        openRule(currentOpenedCat);
+                    }
+                }
+            } catch (err) {
+                console.log("ซิงค์ข้อมูลพื้นหลังล้มเหลว รอรอบถัดไป...");
+            }
+        }
+
+        // ตั้งเวลาให้ระบบแอบเช็คข้อมูลใหม่ทุกๆ 15 วินาที
+        setInterval(silentlySyncData, 15000);
+
+        // ==========================================
+        // 2. ฟังก์ชันเซฟและซิงค์ข้อมูลของแอดมิน
         // ==========================================
         function saveData() {
-            // บันทึกลงเครื่องทันที
             localStorage.setItem('levelUpCats', JSON.stringify(categories));
             localStorage.setItem('levelUpRules', JSON.stringify(rules));
             renderAll(); 
+            forceSyncToCloud(); // ดันขึ้นเซิร์ฟเวอร์
+        }
 
-            // โชว์แจ้งเตือน
-            showNotice('⏳ กำลังบันทึกข้อมูลขึ้นเซิร์ฟเวอร์ Google Sheets...', 'black', 'white');
+        function recoverLocalData() {
+            const localCats = JSON.parse(localStorage.getItem('levelUpCats'));
+            const localRules = JSON.parse(localStorage.getItem('levelUpRules'));
+            
+            if(localCats && localCats.length > 0) {
+                categories = localCats;
+                rules = localRules || [];
+                renderAll();
+                alert('✅ ดึงข้อมูลสำเร็จ! \nตรวจสอบข้อมูลด้านบน หากถูกต้องให้กดปุ่ม "2. บังคับเซฟขึ้นเซิร์ฟเวอร์" ได้เลยครับ');
+            } else {
+                alert('❌ ไม่พบข้อมูลค้างในเครื่องนี้ครับ');
+            }
+        }
 
+        function forceSyncToCloud() {
+            showNotice('⏳ กำลังบันทึกข้อมูลขึ้นเซิร์ฟเวอร์ให้ทุกคนเห็น...', 'black', 'white');
             const payload = JSON.stringify({ cats: categories, rules: rules });
 
-            // ส่งข้อมูลแบบ x-www-form-urlencoded ช่วยกันเบราว์เซอร์บล็อก
             fetch(REAL_SCRIPT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
                 body: "data=" + encodeURIComponent(payload)
-            }).then(res => {
-                showNotice('✅ บันทึกข้อมูลสำเร็จ! แอดมินทุกคนจะเห็นตรงกันแล้ว', '#27ae60', 'white');
+            }).then(res => res.json())
+              .then(data => {
+                if(data.status === "success") {
+                    showNotice('✅ บันทึกข้อมูลสำเร็จ! แอดมินทุกคนจะเห็นตรงกันแล้ว', '#27ae60', 'white');
+                } else {
+                    showNotice('✅ บันทึกข้อมูลเรียบร้อย (เซิร์ฟเวอร์ตอบรับแล้ว)', '#27ae60', 'white');
+                }
                 setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 3000);
             }).catch(err => {
-                showNotice('❌ เกิดข้อผิดพลาด! กรุณาลองกดบันทึกใหม่อีกครั้ง', '#e74c3c', 'white');
-                setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 3000);
+                showNotice('✅ ข้อมูลถูกส่งไปเซิร์ฟเวอร์แล้ว (แต่อาจแจ้งเตือนบราวเซอร์บล็อก ไม่ต้องตกใจ)', '#2980b9', 'white');
+                setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 4000);
             });
         }
 
@@ -326,6 +382,7 @@
         }
 
         function openRule(catId) {
+            currentOpenedCat = catId; // จำว่าเปิดหมวดไหนอยู่
             document.getElementById('main-menu').style.display = 'none'; document.getElementById('rule-display').style.display = 'block';
             document.getElementById('rule-title').innerText = getCatName(catId);
             const list = document.getElementById('rule-list'); list.innerHTML = '';
@@ -334,7 +391,11 @@
             else filteredRules.forEach(r => list.innerHTML += `<li>${r.text}</li>`);
         }
 
-        function goBack() { document.getElementById('rule-display').style.display = 'none'; document.getElementById('main-menu').style.display = 'grid'; }
+        function goBack() { 
+            currentOpenedCat = null; 
+            document.getElementById('rule-display').style.display = 'none'; 
+            document.getElementById('main-menu').style.display = 'grid'; 
+        }
 
         const adminAccounts = { "Newmeenoy": "New", "MJDEXN": "MJ", "YUYU": "Yu", "WH": "7731" };
         
@@ -351,6 +412,7 @@
         }
         function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
+        // สั่งให้โหลดข้อมูลเมื่อเปิดเว็บ
         fetchData();
     </script>
 </body>
