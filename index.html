@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Rules | LevenUp Town</title>
+    <title>Server Rules | LevelUp Town</title>
     
     <link rel="icon" href="LEVELUPTOWN.png" type="image/png">
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -154,8 +154,8 @@
             { id: 'cat_6', name: '🚨 หน่วยงานรัฐ' }
         ];
 
-        let categories = JSON.parse(localStorage.getItem('levenUpCats')) || defaultCats;
-        let rules = JSON.parse(localStorage.getItem('levenUpRules')) || [];
+        let categories = JSON.parse(localStorage.getItem('levelUpCats')) || defaultCats;
+        let rules = JSON.parse(localStorage.getItem('levelUpRules')) || [];
         
         // สคริปต์กู้คืนข้อมูลที่หายไป (Auto-Recovery)
         function recoverOldData() {
