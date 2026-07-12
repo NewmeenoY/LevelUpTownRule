@@ -80,7 +80,7 @@
         
         <!-- ระบบแจ้งสถานะการโหลด -->
         <div id="loading" style="text-align:center; padding:50px; font-weight:bold; font-size:1.2em;">
-            ⏳ กำลังโหลดข้อมูล...
+            ⏳ กำลังโหลดข้อมูลล่าสุดจากฐานข้อมูล...
         </div>
 
         <!-- 1. เมนูหลัก -->
@@ -145,6 +145,7 @@
             modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'align': [] }], ['clean'] ] }
         });
 
+        // ลิงก์ Google Sheets ของคุณ
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec";
         
         let categories = [];
@@ -160,22 +161,25 @@
         ];
 
         // ==========================================
-        // 1. ระบบโหลดข้อมูลแบบลูกผสม (ดึง Cloud ก่อน ถ้าพังดึง Local)
+        // 1. ระบบโหลดข้อมูล (บังคับโหลดใหม่เสมอ)
         // ==========================================
         async function fetchData() {
             try {
-                // พยายามดึงจาก Google Sheets
-                const res = await fetch(SCRIPT_URL);
+                // เติม ?t=เวลาปัจจุบัน เพื่อบังคับให้บราวเซอร์ห้ามใช้ของเก่าที่จำไว้ (แก้ปัญหาผู้ใช้เห็นข้อมูลไม่เหมือนกัน)
+                const noCacheUrl = SCRIPT_URL + "?t=" + new Date().getTime();
+                
+                const res = await fetch(noCacheUrl, { cache: 'no-store' });
                 const data = await res.json();
                 
                 if (data && data.cats && data.cats.length > 0) {
                     categories = data.cats;
                     rules = data.rules || [];
-                    // อัปเดตใส่ Local Storage ด้วย เผื่อรอบหน้าเน็ตหลุด
+                    
+                    // เซฟทับลงในเครื่องตัวเองด้วยเผื่อเอาไว้อ่านตอนเน็ตหลุด
                     localStorage.setItem('levelUpCats', JSON.stringify(categories));
                     localStorage.setItem('levelUpRules', JSON.stringify(rules));
                 } else {
-                    loadLocalData(); // ข้อมูลในชีทไม่สมบูรณ์
+                    loadLocalData(); 
                 }
             } catch (err) {
                 console.log("โหลดจาก Cloud ไม่สำเร็จ, กำลังดึงจากเครื่องแทน...");
@@ -193,21 +197,25 @@
         }
 
         // ==========================================
-        // 2. ระบบเซฟข้อมูลแบบลูกผสม (เซฟ Local ทันที + โยนไป Cloud)
+        // 2. ระบบเซฟข้อมูล (ส่งไปเซฟที่ Google Sheets)
         // ==========================================
         function saveData() {
-            // 1. เซฟลงเครื่องทันที (กด F5 รัวๆ ก็ไม่หาย)
+            // 1. เซฟลงเครื่องคนแก้ก่อนทันที ให้เห็นผลไวๆ
             localStorage.setItem('levelUpCats', JSON.stringify(categories));
             localStorage.setItem('levelUpRules', JSON.stringify(rules));
             renderAll(); 
 
-            // 2. แอบส่งไปเซฟที่ Google Sheets เป็น Background
+            // 2. ส่งข้อมูลไปเซฟที่ Google Sheets (แอดมินคนอื่นจะได้เห็นด้วย)
             fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ป้องกันอาการค้าง
+                // ส่งเป็น Text ธรรมดาเพื่อป้องกันบราวเซอร์บางตัวบล็อก (CORS Issue)
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
                 body: JSON.stringify({ cats: categories, rules: rules })
-            }).catch(err => console.log("ส่งข้อมูลไป Google Sheets มีปัญหา: ", err));
+            }).then(() => {
+                console.log("บันทึกลงฐานข้อมูล Google Sheets สำเร็จ");
+            }).catch(err => {
+                console.log("ส่งข้อมูลไป Google Sheets มีปัญหา: ", err);
+            });
         }
 
         function getCatName(id) {
@@ -216,7 +224,7 @@
         }
 
         // ==========================================
-        // ฟังก์ชันจัดการเนื้อหา (เหมือนเดิม)
+        // ฟังก์ชันจัดการเนื้อหา 
         // ==========================================
         function saveCategory() {
             const name = document.getElementById('new-cat-name').value.trim();
