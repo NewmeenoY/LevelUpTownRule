@@ -80,7 +80,7 @@
         
         <!-- ระบบแจ้งสถานะการโหลด -->
         <div id="loading" style="text-align:center; padding:50px; font-weight:bold; font-size:1.2em;">
-            ⏳ กำลังโหลดข้อมูลจากฐานข้อมูล...
+            ⏳ กำลังโหลดข้อมูล...
         </div>
 
         <!-- 1. เมนูหลัก -->
@@ -97,7 +97,6 @@
         <div id="admin-view" class="admin-panel">
             <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px;">⚙️ แผงควบคุมแอดมิน</h2>
             
-            <!-- ส่วนที่ 1: จัดการหมวดหมู่ -->
             <div class="admin-section" style="border-color:#3498db;">
                 <h3 style="margin-top:0; color:#2980b9;">📁 จัดการหมวดหมู่กฎหมาย</h3>
                 <div class="form-group">
@@ -113,7 +112,6 @@
                 </table>
             </div>
 
-            <!-- ส่วนที่ 2: จัดการกฎหมายในแต่ละหมวด -->
             <div class="admin-section" style="border-color:#e67e22;">
                 <h3 style="margin-top:0; color:#d35400;">📝 จัดการข้อกฎหมาย</h3>
                 
@@ -147,9 +145,6 @@
             modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'align': [] }], ['clean'] ] }
         });
 
-        // ==========================================
-        // 1. ระบบดึงข้อมูลจาก Google Sheets (API)
-        // ==========================================
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec";
         
         let categories = [];
@@ -158,36 +153,61 @@
         let editRuleIndex = -1;
         let isAdmin = false;
 
-        // ดึงข้อมูลเมื่อเข้าเว็บ
+        const defaultCats = [
+            { id: 'cat_1', name: '📜 กฎทั่วไป' },
+            { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' },
+            { id: 'cat_3', name: '🚓 กฎตำรวจ' }
+        ];
+
+        // ==========================================
+        // 1. ระบบโหลดข้อมูลแบบลูกผสม (ดึง Cloud ก่อน ถ้าพังดึง Local)
+        // ==========================================
         async function fetchData() {
             try {
+                // พยายามดึงจาก Google Sheets
                 const res = await fetch(SCRIPT_URL);
                 const data = await res.json();
                 
-                categories = data.cats || [];
-                rules = data.rules || [];
-                
-                document.getElementById('loading').style.display = 'none'; // ซ่อนข้อความโหลด
-                
-                if(!isAdmin) {
-                    document.getElementById('main-menu').style.display = 'grid'; // แสดงเมนูหลัก
+                if (data && data.cats && data.cats.length > 0) {
+                    categories = data.cats;
+                    rules = data.rules || [];
+                    // อัปเดตใส่ Local Storage ด้วย เผื่อรอบหน้าเน็ตหลุด
+                    localStorage.setItem('levelUpCats', JSON.stringify(categories));
+                    localStorage.setItem('levelUpRules', JSON.stringify(rules));
+                } else {
+                    loadLocalData(); // ข้อมูลในชีทไม่สมบูรณ์
                 }
-                
-                renderAll();
             } catch (err) {
-                document.getElementById('loading').innerText = "❌ เกิดข้อผิดพลาดในการโหลดข้อมูล (ตรวจสอบลิงก์ Google Sheets)";
-                console.error(err);
+                console.log("โหลดจาก Cloud ไม่สำเร็จ, กำลังดึงจากเครื่องแทน...");
+                loadLocalData(); 
             }
+            
+            document.getElementById('loading').style.display = 'none';
+            if(!isAdmin) document.getElementById('main-menu').style.display = 'grid';
+            renderAll();
         }
 
-        // ส่งข้อมูลไปเซฟที่ Google Sheets
+        function loadLocalData() {
+            categories = JSON.parse(localStorage.getItem('levelUpCats')) || defaultCats;
+            rules = JSON.parse(localStorage.getItem('levelUpRules')) || [];
+        }
+
+        // ==========================================
+        // 2. ระบบเซฟข้อมูลแบบลูกผสม (เซฟ Local ทันที + โยนไป Cloud)
+        // ==========================================
         function saveData() {
-            renderAll(); // อัปเดตหน้าจอแอดมินทันทีให้เห็นผล
+            // 1. เซฟลงเครื่องทันที (กด F5 รัวๆ ก็ไม่หาย)
+            localStorage.setItem('levelUpCats', JSON.stringify(categories));
+            localStorage.setItem('levelUpRules', JSON.stringify(rules));
+            renderAll(); 
+
+            // 2. แอบส่งไปเซฟที่ Google Sheets เป็น Background
             fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors', // สำคัญ: ป้องกัน Error เรื่อง CORS
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ป้องกันอาการค้าง
                 body: JSON.stringify({ cats: categories, rules: rules })
-            });
+            }).catch(err => console.log("ส่งข้อมูลไป Google Sheets มีปัญหา: ", err));
         }
 
         function getCatName(id) {
@@ -196,34 +216,25 @@
         }
 
         // ==========================================
-        // 2. ฟังก์ชันจัดการหมวดหมู่ (Categories)
+        // ฟังก์ชันจัดการเนื้อหา (เหมือนเดิม)
         // ==========================================
         function saveCategory() {
             const name = document.getElementById('new-cat-name').value.trim();
             if(!name) return alert('กรุณาใส่ชื่อหมวดหมู่!');
-
-            if(editCatIndex > -1) {
-                categories[editCatIndex].name = name;
-                cancelCatEdit();
-            } else {
-                const newId = 'cat_' + Date.now();
-                categories.push({ id: newId, name: name });
-            }
-            document.getElementById('new-cat-name').value = '';
-            saveData();
+            if(editCatIndex > -1) { categories[editCatIndex].name = name; cancelCatEdit(); } 
+            else { categories.push({ id: 'cat_' + Date.now(), name: name }); }
+            document.getElementById('new-cat-name').value = ''; saveData();
         }
 
         function editCategory(index) {
-            editCatIndex = index;
-            document.getElementById('new-cat-name').value = categories[index].name;
+            editCatIndex = index; document.getElementById('new-cat-name').value = categories[index].name;
             document.getElementById('btn-save-cat').innerText = '💾 บันทึกชื่อหมวดหมู่';
             document.getElementById('btn-save-cat').style.background = '#3498db';
             document.getElementById('btn-cancel-cat').style.display = 'inline-block';
         }
 
         function cancelCatEdit() {
-            editCatIndex = -1;
-            document.getElementById('new-cat-name').value = '';
+            editCatIndex = -1; document.getElementById('new-cat-name').value = '';
             document.getElementById('btn-save-cat').innerText = '+ เพิ่มหมวดหมู่ใหม่';
             document.getElementById('btn-save-cat').style.background = '#000';
             document.getElementById('btn-cancel-cat').style.display = 'none';
@@ -231,167 +242,94 @@
 
         function deleteCategory(index) {
             if(confirm('⚠️ คำเตือน: หากลบหมวดหมู่นี้ กฎหมายทั้งหมดที่อยู่ในหมวดนี้จะหายไปด้วย!\nแน่ใจหรือไม่ที่จะลบ?')) {
-                const catId = categories[index].id;
-                rules = rules.filter(r => r.catId !== catId); 
-                categories.splice(index, 1);
-                if(editCatIndex === index) cancelCatEdit();
-                saveData();
+                const catId = categories[index].id; rules = rules.filter(r => r.catId !== catId); 
+                categories.splice(index, 1); if(editCatIndex === index) cancelCatEdit(); saveData();
             }
         }
 
-        // ==========================================
-        // 3. ฟังก์ชันจัดการกฎ (Rules)
-        // ==========================================
         function saveRule() {
             const catId = document.getElementById('admin-cat-filter').value; 
             if(!catId) return alert('กรุณาสร้างหมวดหมู่ก่อนเพิ่มกฎ!');
-
-            const plainText = quill.getText().trim();
-            const textHTML = quill.root.innerHTML;
+            const plainText = quill.getText().trim(); const textHTML = quill.root.innerHTML;
             if(plainText.length === 0) return alert('กรุณากรอกข้อความกฎหมาย!');
-
-            if(editRuleIndex > -1) {
-                rules[editRuleIndex] = { catId, text: textHTML };
-                cancelRuleEdit(); 
-            } else {
-                rules.push({ catId, text: textHTML });
-            }
-            quill.setContents([]); 
-            saveData();
+            if(editRuleIndex > -1) { rules[editRuleIndex] = { catId, text: textHTML }; cancelRuleEdit(); } 
+            else { rules.push({ catId, text: textHTML }); }
+            quill.setContents([]); saveData();
         }
 
         function editRule(index) {
-            editRuleIndex = index;
-            const r = rules[index];
-            
+            editRuleIndex = index; const r = rules[index];
             document.getElementById('admin-cat-filter').value = r.catId;
             document.getElementById('current-cat-label').innerText = `(แก้ไขของ: ${getCatName(r.catId)})`;
             quill.root.innerHTML = r.text;
-            
             document.getElementById('btn-save-rule').innerText = '💾 บันทึกการแก้ไขกฎ';
             document.getElementById('btn-save-rule').style.background = '#e67e22';
             document.getElementById('btn-cancel-rule').style.display = 'inline-block';
         }
 
         function cancelRuleEdit() {
-            editRuleIndex = -1;
-            quill.setContents([]); 
+            editRuleIndex = -1; quill.setContents([]); 
             document.getElementById('btn-save-rule').innerText = '+ เพิ่มกฎลงในหมวดนี้';
             document.getElementById('btn-save-rule').style.background = '#000';
             document.getElementById('btn-cancel-rule').style.display = 'none';
         }
 
         function deleteRule(index) {
-            if(confirm('ลบกฎข้อนี้?')) {
-                rules.splice(index, 1);
-                if(editRuleIndex === index) cancelRuleEdit(); 
-                saveData();
-            }
+            if(confirm('ลบกฎข้อนี้?')) { rules.splice(index, 1); if(editRuleIndex === index) cancelRuleEdit(); saveData(); }
         }
 
-        // ==========================================
-        // 4. ฟังก์ชัน Render หน้าจอ
-        // ==========================================
         function renderAll() {
-            const menu = document.getElementById('main-menu');
-            menu.innerHTML = '';
-            categories.forEach(c => {
-                menu.innerHTML += `<div class="topic-card" onclick="openRule('${c.id}')"><h3>${c.name}</h3></div>`;
-            });
+            const menu = document.getElementById('main-menu'); menu.innerHTML = '';
+            categories.forEach(c => { menu.innerHTML += `<div class="topic-card" onclick="openRule('${c.id}')"><h3>${c.name}</h3></div>`; });
 
-            const catTbody = document.getElementById('admin-cat-list');
-            catTbody.innerHTML = '';
-            if(categories.length === 0) {
-                catTbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray;">ยังไม่มีหมวดหมู่</td></tr>`;
-            } else {
-                categories.forEach((c, index) => {
-                    catTbody.innerHTML += `<tr><td><strong>${c.name}</strong></td><td style="text-align:center;"><button class="btn-edit" onclick="editCategory(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteCategory(${index})">ลบ</button></td></tr>`;
-                });
-            }
+            const catTbody = document.getElementById('admin-cat-list'); catTbody.innerHTML = '';
+            if(categories.length === 0) { catTbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray;">ยังไม่มีหมวดหมู่</td></tr>`; } 
+            else { categories.forEach((c, index) => { catTbody.innerHTML += `<tr><td><strong>${c.name}</strong></td><td style="text-align:center;"><button class="btn-edit" onclick="editCategory(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteCategory(${index})">ลบ</button></td></tr>`; }); }
 
-            const filter = document.getElementById('admin-cat-filter');
-            const currentSelected = filter.value;
-            filter.innerHTML = '';
-            categories.forEach(c => {
-                filter.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-            });
-            if(categories.find(c => c.id === currentSelected)) {
-                filter.value = currentSelected; 
-            }
-            
+            const filter = document.getElementById('admin-cat-filter'); const currentSelected = filter.value; filter.innerHTML = '';
+            categories.forEach(c => { filter.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+            if(categories.find(c => c.id === currentSelected)) { filter.value = currentSelected; }
             renderAdminRules(); 
         }
 
         function renderAdminRules() {
             const selectedCatId = document.getElementById('admin-cat-filter').value;
             document.getElementById('current-cat-label').innerText = selectedCatId ? `(เพิ่มลงใน: ${getCatName(selectedCatId)})` : '';
-
-            const tbody = document.getElementById('admin-rule-list');
-            tbody.innerHTML = ''; 
+            const tbody = document.getElementById('admin-rule-list'); tbody.innerHTML = ''; 
             let hasRules = false;
-
             rules.forEach((r, index) => {
-                if(r.catId === selectedCatId) {
-                    hasRules = true;
-                    tbody.innerHTML += `<tr><td>${r.text}</td><td style="text-align:center;"><button class="btn-edit" onclick="editRule(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteRule(${index})">ลบ</button></td></tr>`;
-                }
+                if(r.catId === selectedCatId) { hasRules = true; tbody.innerHTML += `<tr><td>${r.text}</td><td style="text-align:center;"><button class="btn-edit" onclick="editRule(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteRule(${index})">ลบ</button></td></tr>`; }
             });
-
             if(!hasRules) tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray;">ไม่มีกฎหมายในหมวดนี้</td></tr>`;
         }
 
-        // ==========================================
-        // 5. ระบบดูข้อมูลผู้เล่น & Login
-        // ==========================================
         function openRule(catId) {
-            document.getElementById('main-menu').style.display = 'none';
-            document.getElementById('rule-display').style.display = 'block';
+            document.getElementById('main-menu').style.display = 'none'; document.getElementById('rule-display').style.display = 'block';
             document.getElementById('rule-title').innerText = getCatName(catId);
-            
-            const list = document.getElementById('rule-list');
-            list.innerHTML = '';
+            const list = document.getElementById('rule-list'); list.innerHTML = '';
             const filteredRules = rules.filter(r => r.catId === catId);
-            
             if(filteredRules.length === 0) list.innerHTML = `<li style="color:gray; list-style:none;">ยังไม่มีข้อบังคับในหมวดหมู่นี้</li>`;
             else filteredRules.forEach(r => list.innerHTML += `<li>${r.text}</li>`);
         }
 
-        function goBack() { 
-            document.getElementById('rule-display').style.display = 'none';
-            document.getElementById('main-menu').style.display = 'grid';
-        }
+        function goBack() { document.getElementById('rule-display').style.display = 'none'; document.getElementById('main-menu').style.display = 'grid'; }
 
         const adminAccounts = { "Newmeenoy": "New", "MJDEXN": "MJ", "YUYU": "Yu", "WH": "7731" };
         
         function handleAuthClick() {
-            if(isAdmin) { 
-                isAdmin = false; 
-                document.getElementById('admin-view').style.display = 'none'; 
-                document.getElementById('rule-display').style.display = 'none'; 
-                document.getElementById('main-menu').style.display = 'grid'; 
-                document.getElementById('toggleBtn').innerText = 'เข้าสู่ระบบ Admin'; 
-                cancelCatEdit(); cancelRuleEdit();
-            } else { 
-                document.getElementById('login-modal').style.display = 'flex'; 
-                document.getElementById('input-user').value = ''; document.getElementById('input-pass').value = '';
-            }
+            if(isAdmin) { isAdmin = false; document.getElementById('admin-view').style.display = 'none'; document.getElementById('rule-display').style.display = 'none'; document.getElementById('main-menu').style.display = 'grid'; document.getElementById('toggleBtn').innerText = 'เข้าสู่ระบบ Admin'; cancelCatEdit(); cancelRuleEdit(); } 
+            else { document.getElementById('login-modal').style.display = 'flex'; document.getElementById('input-user').value = ''; document.getElementById('input-pass').value = ''; }
         }
         
         function verifyLogin() {
             const u = document.getElementById('input-user').value; const p = document.getElementById('input-pass').value;
             if(adminAccounts.hasOwnProperty(u) && adminAccounts[u] === p) {
-                isAdmin = true;
-                document.getElementById('login-modal').style.display = 'none';
-                document.getElementById('main-menu').style.display = 'none';
-                document.getElementById('rule-display').style.display = 'none';
-                document.getElementById('admin-view').style.display = 'block';
-                document.getElementById('toggleBtn').innerText = 'ออกจากระบบ Admin';
-                renderAll(); 
+                isAdmin = true; document.getElementById('login-modal').style.display = 'none'; document.getElementById('main-menu').style.display = 'none'; document.getElementById('rule-display').style.display = 'none'; document.getElementById('admin-view').style.display = 'block'; document.getElementById('toggleBtn').innerText = 'ออกจากระบบ Admin'; renderAll(); 
             } else { alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!'); }
         }
         function closeLogin() { document.getElementById('login-modal').style.display = 'none'; }
 
-        // สั่งให้โหลดข้อมูลทันทีที่เปิดเว็บ
+        // สั่งให้โหลดข้อมูลเมื่อเปิดเว็บ
         fetchData();
     </script>
 </body>
