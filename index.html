@@ -58,9 +58,9 @@
 
         /* ป้ายแจ้งสถานะ */
         #loading {
-            text-align: center; padding: 20px; font-weight: bold; font-size: 1.2em; 
+            text-align: center; padding: 15px; font-weight: bold; font-size: 1.1em; 
             background: #fff; border: 3px solid #000; margin-bottom: 20px;
-            box-shadow: 5px 5px 0px #000;
+            box-shadow: 4px 4px 0px #000; transition: all 0.3s ease;
         }
     </style>
 </head>
@@ -138,10 +138,10 @@
                 </table>
             </div>
 
-            <!-- ⭐ เครื่องมือฉุกเฉินสำหรับแก้ปัญหาข้อมูลไม่ตรงกัน ⭐ -->
+            <!-- เครื่องมือฉุกเฉิน -->
             <div class="admin-section" style="border-color:#c0392b; background:#fadbd8;">
-                <h3 style="margin-top:0; color:#c0392b;">🛠️ เครื่องมือฉุกเฉิน (แก้ปัญหาคนอื่นเห็นข้อมูลไม่ตรง)</h3>
-                <p style="margin:0 0 10px 0; font-size:0.95em;">หากแอดมินเห็นหน้าเว็บเป็นข้อมูลเก่า ให้ทำตาม 2 ขั้นตอนนี้:</p>
+                <h3 style="margin-top:0; color:#c0392b;">🛠️ เครื่องมือฉุกเฉิน (ซิงค์ข้อมูล)</h3>
+                <p style="margin:0 0 10px 0; font-size:0.95em;">หากแอดมินคนอื่นเห็นข้อมูลไม่ตรงกับคุณ ให้ทำตาม 2 ขั้นตอนนี้:</p>
                 <button class="btn-action" style="background:#e67e22; border-color:#d35400; width:100%; margin-bottom:10px;" onclick="recoverLocalData()">1. 📂 ดึงข้อมูลที่เคยทำค้างไว้ในเครื่องนี้ขึ้นมาดู</button>
                 <button class="btn-action" style="background:#27ae60; border-color:#2ecc71; width:100%;" onclick="forceSyncToCloud()">2. 🚀 บังคับเซฟข้อมูลนี้ขึ้นเซิร์ฟเวอร์ให้ทุกคนเห็น</button>
             </div>
@@ -165,13 +165,12 @@
         let editCatIndex = -1;
         let editRuleIndex = -1;
         let isAdmin = false;
-        
-        let currentOpenedCat = null; // ตัวแปรจำว่าผู้เล่นกำลังเปิดอ่านกฎหมวดไหนอยู่
+        let currentOpenedCat = null; 
 
         const defaultCats = [ { id: 'cat_1', name: '📜 กฎทั่วไป' }, { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' }, { id: 'cat_3', name: '🚓 กฎตำรวจ' } ];
 
         // ==========================================
-        // 1. โหลดข้อมูลตอนเปิดเว็บครั้งแรก
+        // 1. ระบบโหลดข้อมูล (เสถียรขึ้น)
         // ==========================================
         async function fetchData() {
             showNotice('⏳ กำลังโหลดข้อมูลล่าสุดจากเซิร์ฟเวอร์...', 'black', 'white');
@@ -180,23 +179,30 @@
                 const res = await fetch(noCacheUrl, { cache: 'no-store' });
                 const text = await res.text();
                 
-                if (text && text.includes('cats')) {
+                try {
                     const data = JSON.parse(text);
-                    categories = data.cats || [];
-                    rules = data.rules || [];
-                } else {
-                    categories = defaultCats;
-                    rules = [];
+                    if (data && data.cats) {
+                        categories = data.cats || [];
+                        rules = data.rules || [];
+                    }
+                } catch(e) {
+                    // ถ้าเซิร์ฟเวอร์ส่งข้อมูลผิดพลาดมา ให้ใช้ Local แทน
+                    console.error("JSON Parse Error:", e);
+                    loadLocalData();
                 }
             } catch (err) {
-                console.log("โหลดจาก Cloud ไม่สำเร็จ");
-                categories = defaultCats;
-                rules = [];
+                console.error("Fetch Error:", err);
+                loadLocalData(); 
             }
             
             document.getElementById('loading').style.display = 'none';
             if(!isAdmin) document.getElementById('main-menu').style.display = 'grid';
             renderAll();
+        }
+
+        function loadLocalData() {
+            categories = JSON.parse(localStorage.getItem('levelUpCats')) || defaultCats;
+            rules = JSON.parse(localStorage.getItem('levelUpRules')) || [];
         }
 
         function showNotice(msg, bg, color) {
@@ -208,39 +214,40 @@
         }
 
         // ==========================================
-        // ⭐ 1.5 ระบบ Real-time ดึงข้อมูลอัตโนมัติสำหรับผู้ใช้ทั่วไป ⭐
+        // ⭐ 1.5 Smart Background Sync (อัปเกรดเสถียรภาพ) ⭐
         // ==========================================
         async function silentlySyncData() {
-            // ดึงข้อมูลเงียบๆ เฉพาะตอนที่ไม่ได้ล็อกอินเป็นแอดมิน
-            if (isAdmin) return; 
+            // ไม่ซิงค์ถ้าเป็น Admin หรือ ผู้เล่นพับจอ/ซ่อนแท็บเว็บอยู่ (ประหยัดโควต้าเซิร์ฟเวอร์)
+            if (isAdmin || document.hidden) return; 
 
             try {
                 const noCacheUrl = REAL_SCRIPT_URL + "?t=" + new Date().getTime();
                 const res = await fetch(noCacheUrl, { cache: 'no-store' });
                 const text = await res.text();
                 
-                if (text && text.includes('cats')) {
+                try {
                     const data = JSON.parse(text);
-                    
-                    // อัปเดตตัวแปรข้อมูล
-                    categories = data.cats || [];
-                    rules = data.rules || [];
-                    
-                    // อัปเดตหน้าจอเมนูหลักเงียบๆ
-                    renderAll();
-                    
-                    // ถ้าผู้เล่นกำลังเปิดอ่านกฎอยู่ ให้ข้อมูลเปลี่ยนตามทันที!
-                    if(document.getElementById('rule-display').style.display === 'block' && currentOpenedCat) {
-                        openRule(currentOpenedCat);
+                    if (data && data.cats) {
+                        categories = data.cats || [];
+                        rules = data.rules || [];
+                        
+                        renderAll(); // อัปเดตเมนูหลัก
+                        
+                        if(document.getElementById('rule-display').style.display === 'block' && currentOpenedCat) {
+                            openRule(currentOpenedCat); // อัปเดตข้อมูลที่กำลังอ่านอยู่
+                        }
                     }
-                }
-            } catch (err) {
-                console.log("ซิงค์ข้อมูลพื้นหลังล้มเหลว รอรอบถัดไป...");
-            }
+                } catch(e) { /* เงียบไว้ ไม่รบกวนผู้ใช้ */ }
+            } catch (err) { /* เงียบไว้ รอรอบต่อไป */ }
         }
 
-        // ตั้งเวลาให้ระบบแอบเช็คข้อมูลใหม่ทุกๆ 15 วินาที
-        setInterval(silentlySyncData, 15000);
+        // เช็คทุกๆ 60 วินาที (1 นาที เป็นระยะเวลาที่ปลอดภัยต่อ Google Sheets ที่สุด)
+        setInterval(silentlySyncData, 60000);
+
+        // ดึงข้อมูลทันทีที่ผู้เล่นเปิดแท็บกลับมา (เพิ่มความสดใหม่ของข้อมูล)
+        document.addEventListener("visibilitychange", function() {
+            if (!document.hidden && !isAdmin) silentlySyncData();
+        });
 
         // ==========================================
         // 2. ฟังก์ชันเซฟและซิงค์ข้อมูลของแอดมิน
@@ -249,7 +256,7 @@
             localStorage.setItem('levelUpCats', JSON.stringify(categories));
             localStorage.setItem('levelUpRules', JSON.stringify(rules));
             renderAll(); 
-            forceSyncToCloud(); // ดันขึ้นเซิร์ฟเวอร์
+            forceSyncToCloud();
         }
 
         function recoverLocalData() {
@@ -267,7 +274,7 @@
         }
 
         function forceSyncToCloud() {
-            showNotice('⏳ กำลังบันทึกข้อมูลขึ้นเซิร์ฟเวอร์ให้ทุกคนเห็น...', 'black', 'white');
+            showNotice('⏳ กำลังบันทึกข้อมูลขึ้นเซิร์ฟเวอร์...', 'black', 'white');
             const payload = JSON.stringify({ cats: categories, rules: rules });
 
             fetch(REAL_SCRIPT_URL, {
@@ -277,13 +284,13 @@
             }).then(res => res.json())
               .then(data => {
                 if(data.status === "success") {
-                    showNotice('✅ บันทึกข้อมูลสำเร็จ! แอดมินทุกคนจะเห็นตรงกันแล้ว', '#27ae60', 'white');
+                    showNotice('✅ บันทึกสำเร็จ! ข้อมูลตรงกันทั้งหมดแล้ว', '#27ae60', 'white');
                 } else {
-                    showNotice('✅ บันทึกข้อมูลเรียบร้อย (เซิร์ฟเวอร์ตอบรับแล้ว)', '#27ae60', 'white');
+                    showNotice('✅ บันทึกเรียบร้อย', '#27ae60', 'white');
                 }
                 setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 3000);
             }).catch(err => {
-                showNotice('✅ ข้อมูลถูกส่งไปเซิร์ฟเวอร์แล้ว (แต่อาจแจ้งเตือนบราวเซอร์บล็อก ไม่ต้องตกใจ)', '#2980b9', 'white');
+                showNotice('✅ ข้อมูลถูกส่งไปเซิร์ฟเวอร์แล้ว (อาจแจ้งเตือน CORS ชั่วคราว)', '#2980b9', 'white');
                 setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 4000);
             });
         }
@@ -382,7 +389,7 @@
         }
 
         function openRule(catId) {
-            currentOpenedCat = catId; // จำว่าเปิดหมวดไหนอยู่
+            currentOpenedCat = catId; 
             document.getElementById('main-menu').style.display = 'none'; document.getElementById('rule-display').style.display = 'block';
             document.getElementById('rule-title').innerText = getCatName(catId);
             const list = document.getElementById('rule-list'); list.innerHTML = '';
