@@ -186,7 +186,6 @@
                         rules = data.rules || [];
                     }
                 } catch(e) {
-                    // ถ้าเซิร์ฟเวอร์ส่งข้อมูลผิดพลาดมา ให้ใช้ Local แทน
                     console.error("JSON Parse Error:", e);
                     loadLocalData();
                 }
@@ -217,7 +216,6 @@
         // ⭐ 1.5 Smart Background Sync (อัปเกรดเสถียรภาพ) ⭐
         // ==========================================
         async function silentlySyncData() {
-            // ไม่ซิงค์ถ้าเป็น Admin หรือ ผู้เล่นพับจอ/ซ่อนแท็บเว็บอยู่ (ประหยัดโควต้าเซิร์ฟเวอร์)
             if (isAdmin || document.hidden) return; 
 
             try {
@@ -231,20 +229,18 @@
                         categories = data.cats || [];
                         rules = data.rules || [];
                         
-                        renderAll(); // อัปเดตเมนูหลัก
+                        renderAll(); 
                         
                         if(document.getElementById('rule-display').style.display === 'block' && currentOpenedCat) {
-                            openRule(currentOpenedCat); // อัปเดตข้อมูลที่กำลังอ่านอยู่
+                            openRule(currentOpenedCat); 
                         }
                     }
-                } catch(e) { /* เงียบไว้ ไม่รบกวนผู้ใช้ */ }
-            } catch (err) { /* เงียบไว้ รอรอบต่อไป */ }
+                } catch(e) { }
+            } catch (err) { }
         }
 
-        // เช็คทุกๆ 60 วินาที (1 นาที เป็นระยะเวลาที่ปลอดภัยต่อ Google Sheets ที่สุด)
         setInterval(silentlySyncData, 60000);
 
-        // ดึงข้อมูลทันทีที่ผู้เล่นเปิดแท็บกลับมา (เพิ่มความสดใหม่ของข้อมูล)
         document.addEventListener("visibilitychange", function() {
             if (!document.hidden && !isAdmin) silentlySyncData();
         });
@@ -404,7 +400,14 @@
             document.getElementById('main-menu').style.display = 'grid'; 
         }
 
-        const adminAccounts = { "Newmeenoy": "New", "MJDEXN": "MJ", "YUYU": "Yu", "WH": "7731" };
+        // 🌟 อัปเดตรายชื่อแอดมินตรงนี้ 🌟
+        const adminAccounts = { 
+            "Newmeenoy": "New", 
+            "MJDEXN": "MJ", 
+            "YUYU": "Yu", 
+            "WH": "7731",
+            "Aprilfoolday": "April" 
+        };
         
         function handleAuthClick() {
             if(isAdmin) { isAdmin = false; document.getElementById('admin-view').style.display = 'none'; document.getElementById('rule-display').style.display = 'none'; document.getElementById('main-menu').style.display = 'grid'; document.getElementById('toggleBtn').innerText = 'เข้าสู่ระบบ Admin'; cancelCatEdit(); cancelRuleEdit(); } 
