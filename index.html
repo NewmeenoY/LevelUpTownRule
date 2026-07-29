@@ -6,7 +6,12 @@
     <title>Server Rules | LevelUP Town</title>
     
     <link rel="icon" href="LEVELUPTOWN.png" type="image/png">
+    
+    <!-- Quill.js (Text Editor) -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    
+    <!-- Sortable.js (สำหรับทำระบบลากวางจัดเรียง) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <style>
         :root { --bg-color: #f4f4f4; --container-bg: #ffffff; --text-main: #111111; --border-color: #000000; --accent-color: #000000; }
@@ -32,8 +37,6 @@
         .rule-content ul { padding-left: 20px; font-size: 1.1em; }
         .rule-content ul li { margin-bottom: 15px; }
         .rule-content ul li p { margin: 0; } 
-        
-        /* 🌟 เพิ่ม CSS จัดการรูปภาพในกฎหมายไม่ให้ล้นจอ 🌟 */
         .rule-content img { max-width: 100%; height: auto; border-radius: 8px; border: 2px solid #000; margin-top: 10px; display: block; }
         
         /* Admin Dashboard */
@@ -51,11 +54,27 @@
         
         /* Table */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; }
-        th, td { border: 2px solid #000; padding: 10px; text-align: left; }
+        th, td { border: 2px solid #000; padding: 10px; text-align: left; vertical-align: middle; }
         th { background: #f0f0f0; }
         td p { margin: 0; } 
         .btn-edit { background: #ff9f43; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; margin-right: 5px; }
         .btn-delete { background: #ff4757; color: #fff; border: 2px solid #000; padding: 6px 12px; cursor: pointer; font-weight: bold; }
+
+        /* 🌟 CSS สำหรับระบบลากและวาง (Drag & Drop) 🌟 */
+        .drag-handle { 
+            cursor: grab; 
+            font-size: 1.5em; 
+            color: #555; 
+            display: inline-block; 
+            padding: 5px; 
+            user-select: none;
+        }
+        .drag-handle:active { cursor: grabbing; color: #e67e22; }
+        .sortable-ghost { 
+            opacity: 0.5; 
+            background-color: #ffeaa7 !important; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -88,20 +107,16 @@
 
     <div class="container">
         
-        <!-- ระบบแจ้งสถานะ -->
         <div id="loading" style="display:none;">⏳ กำลังโหลดข้อมูล...</div>
 
-        <!-- 1. เมนูหลัก -->
         <div id="main-menu" class="topic-grid" style="display:none;"></div>
 
-        <!-- 2. หน้าแสดงเนื้อหากฎ -->
         <div id="rule-display" class="rule-content">
             <button class="btn-action" style="margin-bottom:20px;" onclick="goBack()">◀ ย้อนกลับหน้าแรก</button>
             <h2 id="rule-title" style="border-bottom:2px solid #000; padding-bottom:10px; margin-top:0;"></h2>
             <ul id="rule-list"></ul>
         </div>
 
-        <!-- 3. แผงควบคุมแอดมิน -->
         <div id="admin-view" class="admin-panel">
             <h2 style="margin-top:0; border-bottom:2px solid #000; padding-bottom:10px;">⚙️ แผงควบคุมแอดมิน</h2>
             
@@ -115,7 +130,8 @@
                 <button id="btn-cancel-cat" onclick="cancelCatEdit()" style="display:none; padding:10px 15px; font-weight:bold; cursor:pointer; background:#ddd; border:2px solid #000;">ยกเลิก</button>
                 
                 <table>
-                    <thead><tr><th style="width:75%;">รายชื่อหมวดหมู่</th><th style="width:25%; text-align:center;">จัดการ</th></tr></thead>
+                    <!-- 🌟 เพิ่มช่องหัวตารางสำหรับลาก 🌟 -->
+                    <thead><tr><th style="width:10%; text-align:center;">↕️ ลาก</th><th style="width:65%;">รายชื่อหมวดหมู่</th><th style="width:25%; text-align:center;">จัดการ</th></tr></thead>
                     <tbody id="admin-cat-list"></tbody>
                 </table>
             </div>
@@ -130,22 +146,19 @@
 
                 <div class="form-group">
                     <label>ข้อความกฎ <span id="current-cat-label" style="color:gray;"></span></label>
-                    
-                    <!-- กล่องบรรจุ Text Editor -->
                     <div id="editor-container" style="height: 200px;"></div>
                     <p style="margin-top:5px; font-size:0.85em; color:gray;">💡 แนะนำ: หากต้องการใส่รูปภาพ ควรใช้ภาพที่มีขนาดเล็ก (ไม่เกิน 200KB) เพื่อให้บันทึกลงเซิร์ฟเวอร์ได้รวดเร็ว</p>
-
                 </div>
                 <button id="btn-save-rule" class="btn-action" onclick="saveRule()">+ เพิ่มกฎลงในหมวดนี้</button>
                 <button id="btn-cancel-rule" onclick="cancelRuleEdit()" style="display:none; padding:10px 15px; font-weight:bold; cursor:pointer; background:#ddd; border:2px solid #000;">ยกเลิกแก้ไข</button>
                 
                 <table>
-                    <thead><tr><th style="width:75%;">เนื้อหากฎ (มีรูปจะแสดงโค้ดภาพ)</th><th style="width:25%; text-align:center;">จัดการ</th></tr></thead>
+                    <!-- 🌟 เพิ่มช่องหัวตารางสำหรับลาก 🌟 -->
+                    <thead><tr><th style="width:10%; text-align:center;">↕️ ลาก</th><th style="width:65%;">เนื้อหากฎ (มีรูปจะแสดงโค้ดภาพ)</th><th style="width:25%; text-align:center;">จัดการ</th></tr></thead>
                     <tbody id="admin-rule-list"></tbody>
                 </table>
             </div>
 
-            <!-- เครื่องมือฉุกเฉิน -->
             <div class="admin-section" style="border-color:#c0392b; background:#fadbd8;">
                 <h3 style="margin-top:0; color:#c0392b;">🛠️ เครื่องมือฉุกเฉิน (ซิงค์ข้อมูล)</h3>
                 <p style="margin:0 0 10px 0; font-size:0.95em;">หากแอดมินคนอื่นเห็นข้อมูลไม่ตรงกับคุณ ให้ทำตาม 2 ขั้นตอนนี้:</p>
@@ -156,12 +169,9 @@
         </div>
     </div>
 
-    <!-- Quill.js -->
+    <!-- Quill.js Scripts -->
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
-        // ==========================================
-        // 🌟 อัปเกรดเครื่องมือ: เพิ่มปุ่ม 'image' และ 'video' 🌟
-        // ==========================================
         var quill = new Quill('#editor-container', {
             theme: 'snow',
             placeholder: 'พิมพ์ข้อกฎหมาย จัดสี ทำตัวหนา และใส่รูปภาพได้ที่นี่...',
@@ -170,7 +180,7 @@
                     ['bold', 'italic', 'underline', 'strike'], 
                     [{ 'color': [] }, { 'background': [] }], 
                     [{ 'align': [] }], 
-                    ['image', 'video'], // <--- ปล่อยพลังให้ปุ่มรูปภาพและวิดีโอ
+                    ['image', 'video'], 
                     ['clean'] 
                 ] 
             }
@@ -186,6 +196,50 @@
         let currentOpenedCat = null; 
 
         const defaultCats = [ { id: 'cat_1', name: '📜 กฎทั่วไป' }, { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' }, { id: 'cat_3', name: '🚓 กฎตำรวจ' } ];
+
+        // ==========================================
+        // 🌟 ติดตั้งระบบลากและวาง (Drag & Drop) 🌟
+        // ==========================================
+        
+        // 1. ลากสลับหมวดหมู่หลัก
+        new Sortable(document.getElementById('admin-cat-list'), {
+            handle: '.drag-handle', // บังคับให้ลากได้เฉพาะตรงที่มีคลาสนี้
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                if (evt.oldIndex === evt.newIndex) return; // ถ้าวางที่เดิม ไม่ต้องทำอะไร
+                
+                // สลับตำแหน่งในระบบ
+                const [movedItem] = categories.splice(evt.oldIndex, 1);
+                categories.splice(evt.newIndex, 0, movedItem);
+                saveData(); // บันทึกข้อมูล
+            }
+        });
+
+        // 2. ลากสลับข้อกฎหมายย่อย
+        new Sortable(document.getElementById('admin-rule-list'), {
+            handle: '.drag-handle', 
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                if (evt.oldIndex === evt.newIndex) return;
+                
+                const selectedCatId = document.getElementById('admin-cat-filter').value;
+                
+                // แยกกฎหมวดหมู่อื่นออกไปก่อน
+                const otherRules = rules.filter(r => r.catId !== selectedCatId);
+                // ดึงเฉพาะกฎในหมวดหมู่นี้มาสลับตำแหน่ง
+                let currentCatRules = rules.filter(r => r.catId === selectedCatId);
+                
+                const [movedItem] = currentCatRules.splice(evt.oldIndex, 1);
+                currentCatRules.splice(evt.newIndex, 0, movedItem);
+                
+                // รวมข้อมูลทั้งหมดกลับเข้าไปใหม่
+                rules = [...otherRules, ...currentCatRules];
+                saveData();
+            }
+        });
+
 
         // ==========================================
         // ระบบโหลดข้อมูล (เสถียรขึ้น)
@@ -246,9 +300,7 @@
                     if (data && data.cats) {
                         categories = data.cats || [];
                         rules = data.rules || [];
-                        
                         renderAll(); 
-                        
                         if(document.getElementById('rule-display').style.display === 'block' && currentOpenedCat) {
                             openRule(currentOpenedCat); 
                         }
@@ -258,7 +310,6 @@
         }
 
         setInterval(silentlySyncData, 60000);
-
         document.addEventListener("visibilitychange", function() {
             if (!document.hidden && !isAdmin) silentlySyncData();
         });
@@ -365,6 +416,7 @@
             document.getElementById('btn-save-rule').innerText = '💾 บันทึกการแก้ไขกฎ';
             document.getElementById('btn-save-rule').style.background = '#e67e22';
             document.getElementById('btn-cancel-rule').style.display = 'inline-block';
+            window.scrollTo({ top: document.getElementById('editor-container').offsetTop - 100, behavior: 'smooth' });
         }
 
         function cancelRuleEdit() {
@@ -383,8 +435,16 @@
             categories.forEach(c => { menu.innerHTML += `<div class="topic-card" onclick="openRule('${c.id}')"><h3>${c.name}</h3></div>`; });
 
             const catTbody = document.getElementById('admin-cat-list'); catTbody.innerHTML = '';
-            if(categories.length === 0) { catTbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray;">ยังไม่มีหมวดหมู่</td></tr>`; } 
-            else { categories.forEach((c, index) => { catTbody.innerHTML += `<tr><td><strong>${c.name}</strong></td><td style="text-align:center;"><button class="btn-edit" onclick="editCategory(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteCategory(${index})">ลบ</button></td></tr>`; }); }
+            if(categories.length === 0) { catTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:gray;">ยังไม่มีหมวดหมู่</td></tr>`; } 
+            else { categories.forEach((c, index) => { 
+                // 🌟 แทรกไอคอน Drag handle (☰) เข้าไปในตาราง 🌟
+                catTbody.innerHTML += `
+                <tr>
+                    <td style="text-align:center;"><span class="drag-handle" title="ลากเพื่อเลื่อน">☰</span></td>
+                    <td><strong>${c.name}</strong></td>
+                    <td style="text-align:center;"><button class="btn-edit" onclick="editCategory(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteCategory(${index})">ลบ</button></td>
+                </tr>`; 
+            }); }
 
             const filter = document.getElementById('admin-cat-filter'); const currentSelected = filter.value; filter.innerHTML = '';
             categories.forEach(c => { filter.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
@@ -397,20 +457,26 @@
             document.getElementById('current-cat-label').innerText = selectedCatId ? `(เพิ่มลงใน: ${getCatName(selectedCatId)})` : '';
             const tbody = document.getElementById('admin-rule-list'); tbody.innerHTML = ''; 
             let hasRules = false;
+            
+            // ใช้ตัวแปรช่วยเพื่อนับ index ที่แท้จริงจาก array กฎทั้งหมดส่งไปแก้ไขได้ถูกต้อง
             rules.forEach((r, index) => {
                 if(r.catId === selectedCatId) { 
                     hasRules = true; 
-                    
-                    // ป้องกันตารางบวมเวลาแสดงโค้ดรูปภาพ (Base64) ในหน้าแอดมิน
                     let displayText = r.text;
                     if(displayText.includes('<img')) {
-                        displayText = '<span style="color:#e67e22;">[มีรูปภาพแนบอยู่]</span><br>' + displayText.replace(/<img[^>]*>/g, "");
+                        displayText = '<span style="color:#e67e22; font-weight:bold;">[🖼️ มีรูปภาพแนบอยู่]</span><br>' + displayText.replace(/<img[^>]*>/g, "");
                     }
                     
-                    tbody.innerHTML += `<tr><td>${displayText}</td><td style="text-align:center;"><button class="btn-edit" onclick="editRule(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteRule(${index})">ลบ</button></td></tr>`; 
+                    // 🌟 แทรกไอคอน Drag handle (☰) เข้าไปในตาราง 🌟
+                    tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center;"><span class="drag-handle" title="ลากเพื่อเลื่อน">☰</span></td>
+                        <td>${displayText}</td>
+                        <td style="text-align:center;"><button class="btn-edit" onclick="editRule(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteRule(${index})">ลบ</button></td>
+                    </tr>`; 
                 }
             });
-            if(!hasRules) tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray;">ไม่มีกฎหมายในหมวดนี้</td></tr>`;
+            if(!hasRules) tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:gray;">ไม่มีกฎหมายในหมวดนี้</td></tr>`;
         }
 
         function openRule(catId) {
