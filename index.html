@@ -33,6 +33,9 @@
         .rule-content ul li { margin-bottom: 15px; }
         .rule-content ul li p { margin: 0; } 
         
+        /* 🌟 เพิ่ม CSS จัดการรูปภาพในกฎหมายไม่ให้ล้นจอ 🌟 */
+        .rule-content img { max-width: 100%; height: auto; border-radius: 8px; border: 2px solid #000; margin-top: 10px; display: block; }
+        
         /* Admin Dashboard */
         #admin-view { display: none; background: #fff; border: 3px solid #000; padding: 30px; box-shadow: 8px 8px 0px #000; }
         .admin-section { background: #f9f9f9; padding: 20px; border: 2px dashed #ccc; margin-bottom: 20px; }
@@ -127,13 +130,17 @@
 
                 <div class="form-group">
                     <label>ข้อความกฎ <span id="current-cat-label" style="color:gray;"></span></label>
-                    <div id="editor-container" style="height: 150px;"></div>
+                    
+                    <!-- กล่องบรรจุ Text Editor -->
+                    <div id="editor-container" style="height: 200px;"></div>
+                    <p style="margin-top:5px; font-size:0.85em; color:gray;">💡 แนะนำ: หากต้องการใส่รูปภาพ ควรใช้ภาพที่มีขนาดเล็ก (ไม่เกิน 200KB) เพื่อให้บันทึกลงเซิร์ฟเวอร์ได้รวดเร็ว</p>
+
                 </div>
                 <button id="btn-save-rule" class="btn-action" onclick="saveRule()">+ เพิ่มกฎลงในหมวดนี้</button>
                 <button id="btn-cancel-rule" onclick="cancelRuleEdit()" style="display:none; padding:10px 15px; font-weight:bold; cursor:pointer; background:#ddd; border:2px solid #000;">ยกเลิกแก้ไข</button>
                 
                 <table>
-                    <thead><tr><th style="width:75%;">เนื้อหากฎ</th><th style="width:25%; text-align:center;">จัดการ</th></tr></thead>
+                    <thead><tr><th style="width:75%;">เนื้อหากฎ (มีรูปจะแสดงโค้ดภาพ)</th><th style="width:25%; text-align:center;">จัดการ</th></tr></thead>
                     <tbody id="admin-rule-list"></tbody>
                 </table>
             </div>
@@ -152,10 +159,21 @@
     <!-- Quill.js -->
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
+        // ==========================================
+        // 🌟 อัปเกรดเครื่องมือ: เพิ่มปุ่ม 'image' และ 'video' 🌟
+        // ==========================================
         var quill = new Quill('#editor-container', {
             theme: 'snow',
-            placeholder: 'พิมพ์ข้อกฎหมาย จัดสี ทำตัวหนาได้ที่นี่...',
-            modules: { toolbar: [ ['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'align': [] }], ['clean'] ] }
+            placeholder: 'พิมพ์ข้อกฎหมาย จัดสี ทำตัวหนา และใส่รูปภาพได้ที่นี่...',
+            modules: { 
+                toolbar: [ 
+                    ['bold', 'italic', 'underline', 'strike'], 
+                    [{ 'color': [] }, { 'background': [] }], 
+                    [{ 'align': [] }], 
+                    ['image', 'video'], // <--- ปล่อยพลังให้ปุ่มรูปภาพและวิดีโอ
+                    ['clean'] 
+                ] 
+            }
         });
 
         const REAL_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0f_-BgSBrxsiR7_tpkvlRepCeEBh_xI29Hk0nI6sQ3HEoOzNaoJ40Pi7HpIkj5zzUbQ/exec";
@@ -170,7 +188,7 @@
         const defaultCats = [ { id: 'cat_1', name: '📜 กฎทั่วไป' }, { id: 'cat_2', name: '🛡️ พื้นที่ปลอดภัย' }, { id: 'cat_3', name: '🚓 กฎตำรวจ' } ];
 
         // ==========================================
-        // 1. ระบบโหลดข้อมูล (เสถียรขึ้น)
+        // ระบบโหลดข้อมูล (เสถียรขึ้น)
         // ==========================================
         async function fetchData() {
             showNotice('⏳ กำลังโหลดข้อมูลล่าสุดจากเซิร์ฟเวอร์...', 'black', 'white');
@@ -213,7 +231,7 @@
         }
 
         // ==========================================
-        // ⭐ 1.5 Smart Background Sync (อัปเกรดเสถียรภาพ) ⭐
+        // Smart Background Sync
         // ==========================================
         async function silentlySyncData() {
             if (isAdmin || document.hidden) return; 
@@ -246,7 +264,7 @@
         });
 
         // ==========================================
-        // 2. ฟังก์ชันเซฟและซิงค์ข้อมูลของแอดมิน
+        // ฟังก์ชันเซฟและซิงค์ข้อมูลของแอดมิน
         // ==========================================
         function saveData() {
             localStorage.setItem('levelUpCats', JSON.stringify(categories));
@@ -332,7 +350,8 @@
             const catId = document.getElementById('admin-cat-filter').value; 
             if(!catId) return alert('กรุณาสร้างหมวดหมู่ก่อนเพิ่มกฎ!');
             const plainText = quill.getText().trim(); const textHTML = quill.root.innerHTML;
-            if(plainText.length === 0) return alert('กรุณากรอกข้อความกฎหมาย!');
+            if(plainText.length === 0 && textHTML === '<p><br></p>') return alert('กรุณากรอกข้อความกฎหมายหรือใส่รูปภาพ!');
+            
             if(editRuleIndex > -1) { rules[editRuleIndex] = { catId, text: textHTML }; cancelRuleEdit(); } 
             else { rules.push({ catId, text: textHTML }); }
             quill.setContents([]); saveData();
@@ -379,7 +398,17 @@
             const tbody = document.getElementById('admin-rule-list'); tbody.innerHTML = ''; 
             let hasRules = false;
             rules.forEach((r, index) => {
-                if(r.catId === selectedCatId) { hasRules = true; tbody.innerHTML += `<tr><td>${r.text}</td><td style="text-align:center;"><button class="btn-edit" onclick="editRule(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteRule(${index})">ลบ</button></td></tr>`; }
+                if(r.catId === selectedCatId) { 
+                    hasRules = true; 
+                    
+                    // ป้องกันตารางบวมเวลาแสดงโค้ดรูปภาพ (Base64) ในหน้าแอดมิน
+                    let displayText = r.text;
+                    if(displayText.includes('<img')) {
+                        displayText = '<span style="color:#e67e22;">[มีรูปภาพแนบอยู่]</span><br>' + displayText.replace(/<img[^>]*>/g, "");
+                    }
+                    
+                    tbody.innerHTML += `<tr><td>${displayText}</td><td style="text-align:center;"><button class="btn-edit" onclick="editRule(${index})">แก้ไข</button><button class="btn-delete" onclick="deleteRule(${index})">ลบ</button></td></tr>`; 
+                }
             });
             if(!hasRules) tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:gray;">ไม่มีกฎหมายในหมวดนี้</td></tr>`;
         }
@@ -400,7 +429,6 @@
             document.getElementById('main-menu').style.display = 'grid'; 
         }
 
-        // 🌟 อัปเดตรายชื่อแอดมินตรงนี้ 🌟
         const adminAccounts = { 
             "Newmeenoy": "New", 
             "MJDEXN": "MJ", 
